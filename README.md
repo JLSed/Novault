@@ -1,20 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app), configured with Rust and WebAssembly.
+
+## Prerequisites
+
+Before running the project, ensure you have the following installed:
+
+1.  **Rust Toolchain**: Install via [rustup.rs](https://rustup.rs/).
+2.  **wasm-pack**: Install by running:
+    ```bash
+    cargo install wasm-pack
+    ```
 
 ## Getting Started
 
-First, run the development server:
+1.  **Build the WASM module**:
+    This generates the `pkg/` folder needed by the Next.js app.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+    ```bash
+    npm run build:wasm
+    ```
+
+2.  **Run the development server**:
+    ```bash
+    npm run dev
+    # or
+    yarn dev
+    # or
+    pnpm dev
+    # or
+    bun dev
+    ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+The `pkg` folder containing the compiled WebAssembly is automatically ignored by git, but the build command handles regenerating it.
+
+## Scripts
+
+- `npm run build:wasm`: Compiles Rust code to WebAssembly (`pkg/` folder).
+- `npm run dev`: Starts Next.js with Webpack (required for stable WASM support).
+- `npm run build`: Builds both the WASM module and the Next.js application for production.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
