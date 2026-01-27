@@ -1,8 +1,12 @@
+---
+applyTo: "**/*.ts, **/*.tsx"
+---
+
+These instructions guide GitHub Copilot to generate high-quality, modern JavaScript and TypeScript code following established best practices.
+
 # JavaScript/TypeScript Best Practices for GitHub Copilot
 
 ## Overview
-
-These instructions guide GitHub Copilot to generate high-quality, modern JavaScript and TypeScript code following established best practices.
 
 ## General JavaScript/TypeScript Guidelines
 
@@ -112,7 +116,7 @@ function fetchData<T>(url: string): Promise<ApiResponse<T>> {
 async function createUser(
   name: string,
   email: string,
-  role: UserRole = UserRole.User
+  role: UserRole = UserRole.User,
 ): Promise<User> {
   const user: User = {
     id: generateId(),
@@ -228,7 +232,7 @@ class ApplicationError extends Error {
   constructor(
     message: string,
     public code: string,
-    public statusCode: number = 500
+    public statusCode: number = 500,
   ) {
     super(message);
     this.name = this.constructor.name;
@@ -237,7 +241,10 @@ class ApplicationError extends Error {
 }
 
 class ValidationError extends ApplicationError {
-  constructor(message: string, public field?: string) {
+  constructor(
+    message: string,
+    public field?: string,
+  ) {
     super(message, "VALIDATION_ERROR", 400);
   }
 }
@@ -265,7 +272,7 @@ async function getUserById(userId: string): Promise<User> {
       throw new ApplicationError(
         `Failed to fetch user: ${response.statusText}`,
         "FETCH_ERROR",
-        response.status
+        response.status,
       );
     }
 
@@ -415,7 +422,7 @@ const processOrder = pipe(
   validateOrder,
   calculateTax,
   applyDiscount,
-  formatForDisplay
+  formatForDisplay,
 );
 
 // Avoid mutation
@@ -488,7 +495,7 @@ async function loadOptionalData(userId: string): Promise<Partial<UserData>> {
 async function fetchWithRetry<T>(
   fn: () => Promise<T>,
   maxRetries: number = 3,
-  delay: number = 1000
+  delay: number = 1000,
 ): Promise<T> {
   let lastError: Error;
 
@@ -589,7 +596,7 @@ describe("UserService", () => {
       expect(result).toMatchObject(userData);
       expect(result.id).toBeDefined();
       expect(mockRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining(userData)
+        expect.objectContaining(userData),
       );
     });
 
@@ -602,7 +609,7 @@ describe("UserService", () => {
 
       // Act & Assert
       await expect(userService.createUser(invalidData)).rejects.toThrow(
-        ValidationError
+        ValidationError,
       );
     });
   });
@@ -730,7 +737,7 @@ async function hashPassword(password: string): Promise<string> {
 
 async function verifyPassword(
   password: string,
-  hash: string
+  hash: string,
 ): Promise<boolean> {
   return await bcrypt.compare(password, hash);
 }
@@ -786,7 +793,7 @@ async function fetchUser(
   options: {
     includeMetadata?: boolean;
     maxRetries?: number;
-  } = {}
+  } = {},
 ): Promise<User> {
   // Implementation
 }

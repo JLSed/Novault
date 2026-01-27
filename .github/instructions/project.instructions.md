@@ -1,3 +1,9 @@
+---
+applyTo: "**"
+---
+
+Provide project context and coding guidelines that AI should follow when generating code, answering questions, or reviewing changes.
+
 # GitHub Copilot Instructions for NoVault
 
 ## Project Overview
@@ -25,6 +31,7 @@ NoVault is a secure cloud storage solution with zero-knowledge encryption built 
 4. **Before creating a function, evaluate if it will be reused.** Don't implement one-time use functions as separate utilities.
 5. **Always perform a global search first** to check if the function you want to create already exists. Use existing functions instead of re-implementing them.
 6. Place reusable utility functions in a `lib/` or `utils/` folder.
+7. **All server actions and server-side functions must be placed in `actions.ts`** within the corresponding route folder. Keep page components clean by delegating data fetching and mutations to actions.
 
 ---
 
@@ -72,10 +79,24 @@ public/           # Static assets
 
 ---
 
+## Supabase Guidelines
+
+19. **Use the `api` schema for all database queries.** The `public` schema is restricted for security. Always use `.schema("api")` before `.from()` in queries.
+20. Tables should be created in `public` schema with RLS enabled, then exposed via views in `api` schema.
+21. Example query pattern:
+    ```typescript
+    const { data } = await supabase
+      .schema("api")
+      .from("table_name")
+      .select("*");
+    ```
+
+---
+
 ## Best Practices
 
-19. Follow React 19 best practices and use Server Components where appropriate.
-20. Keep components small and focused on a single responsibility.
-21. Use meaningful, descriptive names for components, functions, and variables.
-22. Document complex logic with comments.
-23. Ensure all user data encryption happens client-side using the WASM module.
+22. Follow React 19 best practices and use Server Components where appropriate.
+23. Keep components small and focused on a single responsibility.
+24. Use meaningful, descriptive names for components, functions, and variables.
+25. Document complex logic with comments.
+26. Ensure all user data encryption happens client-side using the WASM module.

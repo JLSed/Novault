@@ -9,7 +9,7 @@ export default async function SignupPage(props: {
     <div className="flex flex-col items-center justify-center min-h-screen">
       <h1 className="text-2xl font-black mb-4">Sign Up</h1>
       {searchParams.message && (
-        <div className="bg-primary/10 border border-primary text-primary px-4 py-3 rounded relative mb-4 w-128">
+        <div className="bg-primary/10 border border-primary text-primary px-4 py-3 rounded relative mb-4 w-lg">
           {searchParams.message}
         </div>
       )}
@@ -18,7 +18,7 @@ export default async function SignupPage(props: {
           {searchParams.error}
         </div>
       )}
-      <form className="flex flex-col gap-4  p-8 w-128">
+      <form className="flex flex-col gap-4  p-8 w-lg">
         <div className="flex flex-col gap-2">
           <label htmlFor="email">Email:</label>
           <input

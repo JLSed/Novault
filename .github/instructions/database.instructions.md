@@ -1,8 +1,10 @@
-# Database Best Practices for GitHub Copilot
-
-## Overview
+---
+applyTo: "**/*.sql, **/*.psql, **/*.pgsql, **/*.dbml, **/*.ts"
+---
 
 These guidelines help GitHub Copilot generate efficient, secure, and maintainable database code following industry best practices.
+
+# Database Best Practices for GitHub Copilot
 
 ## Database Design
 
@@ -179,30 +181,9 @@ GROUP BY u.id, u.name;
 
 **Examples by Language:**
 
-**Python with psycopg2:**
-
-```python
-import psycopg2
-
-# ✅ Good: Parameterized query
-def get_user_by_email(email: str):
-    """Fetch user by email using parameterized query."""
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                "SELECT id, name, email FROM user WHERE email = %s",
-                (email,)
-            )
-            return cursor.fetchone()
-
-# ❌ Bad: String concatenation (SQL injection vulnerable)
-def get_user_by_email_bad(email: str):
-    cursor.execute(f"SELECT * FROM user WHERE email = '{email}'")
-```
-
 **JavaScript with pg:**
 
-```javascript
+````javascript
 import { Pool } from "pg";
 
 const pool = new Pool();
@@ -211,7 +192,7 @@ const pool = new Pool();
 async function getUserByEmail(email) {
   const result = await pool.query(
     "SELECT id, name, email FROM user WHERE email = $1",
-    [email]
+    [email],
   );
   return result.rows[0];
 }
@@ -219,43 +200,10 @@ async function getUserByEmail(email) {
 // ❌ Bad: String concatenation
 async function getUserByEmailBad(email) {
   const result = await pool.query(
-    `SELECT * FROM user WHERE email = '${email}'`
+    `SELECT * FROM user WHERE email = '${email}'`,
   );
   return result.rows[0];
 }
-```
-
-**Java with JDBC:**
-
-```java
-// ✅ Good: PreparedStatement
-public User getUserByEmail(String email) throws SQLException {
-    String sql = "SELECT id, name, email FROM user WHERE email = ?";
-
-    try (Connection conn = dataSource.getConnection();
-         PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-        stmt.setString(1, email);
-
-        try (ResultSet rs = stmt.executeQuery()) {
-            if (rs.next()) {
-                return new User(
-                    rs.getLong("id"),
-                    rs.getString("name"),
-                    rs.getString("email")
-                );
-            }
-            return null;
-        }
-    }
-}
-
-// ❌ Bad: String concatenation
-public User getUserByEmailBad(String email) throws SQLException {
-    String sql = "SELECT * FROM user WHERE email = '" + email + "'";
-    // This is vulnerable to SQL injection!
-}
-```
 
 ## ORM Best Practices
 
@@ -350,7 +298,7 @@ class UserRepository {
   async getComplexStats() {
     return await userRepository.query(
       `
-            SELECT 
+            SELECT
                 u.name,
                 COUNT(o.id) as order_count,
                 SUM(o.total_amount) as total_spent
@@ -360,11 +308,11 @@ class UserRepository {
             GROUP BY u.id, u.name
             HAVING COUNT(o.id) > $2
         `,
-      [true, 5]
+      [true, 5],
     );
   }
 }
-```
+````
 
 ## Transactions
 
@@ -376,51 +324,6 @@ class UserRepository {
 - Use appropriate isolation levels
 - Don't hold transactions during external API calls
 - Use savepoints for nested transactions
-
-**Example (Python with SQLAlchemy):**
-
-```python
-from sqlalchemy.orm import Session
-from contextlib import contextmanager
-
-@contextmanager
-def transaction_scope(session: Session):
-    """Provide a transactional scope for operations."""
-    try:
-        yield session
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
-
-def transfer_funds(from_account_id: int, to_account_id: int, amount: float):
-    """
-    Transfer funds between accounts using a transaction.
-    Either both operations succeed, or both fail.
-    """
-    with transaction_scope(get_session()) as session:
-        # Withdraw from source account
-        from_account = session.query(Account).filter_by(id=from_account_id).with_for_update().first()
-        if from_account.balance < amount:
-            raise InsufficientFundsError()
-        from_account.balance -= amount
-
-        # Deposit to destination account
-        to_account = session.query(Account).filter_by(id=to_account_id).with_for_update().first()
-        to_account.balance += amount
-
-        # Create transaction record
-        transaction = Transaction(
-            from_account_id=from_account_id,
-            to_account_id=to_account_id,
-            amount=amount
-        )
-        session.add(transaction)
-
-        # Commit happens automatically if no exception
-```
 
 **Example (TypeScript with TypeORM):**
 
@@ -463,7 +366,7 @@ async function createUserWithProfile(userData: any, profileData: any) {
 
 **Example (Node.js with node-pg-migrate):**
 
-```javascript
+````javascript
 // migrations/1234567890_create_users_table.js
 
 exports.up = (pgm) => {
@@ -507,40 +410,6 @@ exports.up = (pgm) => {
 exports.down = (pgm) => {
   pgm.dropTable("user");
 };
-```
-
-**Example (Python with Alembic):**
-
-```python
-"""Create users table
-
-Revision ID: abc123
-Revises:
-Create Date: 2024-01-01 00:00:00
-"""
-from alembic import op
-import sqlalchemy as sa
-
-def upgrade():
-    op.create_table(
-        'user',
-        sa.Column('id', sa.BigInteger(), nullable=False),
-        sa.Column('email', sa.String(255), nullable=False),
-        sa.Column('name', sa.String(100), nullable=False),
-        sa.Column('password_hash', sa.String(255), nullable=False),
-        sa.Column('is_active', sa.Boolean(), nullable=False, server_default='true'),
-        sa.Column('created_at', sa.TIMESTAMP(), nullable=False, server_default=sa.text('CURRENT_TIMESTAMP')),
-        sa.Column('updated_at', sa.TIMESTAMP(), nullable=False, server_default=sa.text('CURRENT_TIMESTAMP')),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('email')
-    )
-
-    op.create_index('idx_user_email', 'user', ['email'])
-
-def downgrade():
-    op.drop_index('idx_user_email', table_name='user')
-    op.drop_table('user')
-```
 
 ## Connection Pooling
 
@@ -592,7 +461,7 @@ process.on("SIGTERM", async () => {
   await pool.end();
   console.log("Database pool closed");
 });
-```
+````
 
 ## Performance Optimization
 
@@ -653,6 +522,8 @@ REFRESH MATERIALIZED VIEW user_order_stats;
 - Audit database access
 - Regularly backup databases
 - Test backup restoration procedures
+- **If a function is SECURITY DEFINER, always pin the search_path** - This is critical because the definer's privileges apply, and an unpinned search_path could allow privilege escalation attacks
+- **Wrap auth/session function calls in scalar subqueries for RLS policies** - Direct calls like `auth.uid()` or `current_setting('...')` inside USING or WITH CHECK are volatile and re-evaluated per row, causing CPU overhead for bulk operations. Use `(SELECT auth.uid())` instead of `auth.uid()` for more efficient execution plans
 
 **Example:**
 
@@ -679,6 +550,39 @@ VALUES (
     crypt('password', gen_salt('bf')),
     pgp_sym_encrypt('123-45-6789', 'encryption_key')
 );
+
+-- ✅ Good: SECURITY DEFINER function with pinned search_path
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.user_profiles (user_id, role)
+    VALUES (new.id, 'user');
+    RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public;
+
+-- ❌ Bad: SECURITY DEFINER without pinned search_path (vulnerable to privilege escalation)
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO user_profiles (user_id, role)
+    VALUES (new.id, 'user');
+    RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ✅ Good: RLS policy with scalar subquery for auth function
+CREATE POLICY "Users can view own profile"
+ON public.user_profiles
+FOR SELECT
+USING ((SELECT auth.uid()) = user_id);
+
+-- ❌ Bad: RLS policy with direct auth function call (re-evaluated per row)
+CREATE POLICY "Users can view own profile"
+ON public.user_profiles
+FOR SELECT
+USING (auth.uid() = user_id);
 ```
 
 ## Best Practices Summary

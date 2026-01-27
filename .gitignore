@@ -34,7 +34,7 @@ yarn-error.log*
 .env*
 
 # schema files
-supabase_schema.sql
+sql_query/
 
 # vercel
 .vercel

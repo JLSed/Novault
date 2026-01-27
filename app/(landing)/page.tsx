@@ -1,4 +1,3 @@
-import page from "../page";
 import { LandingNavBar } from "@/components/LandingNavBar";
 
 export default function LandingPage() {
