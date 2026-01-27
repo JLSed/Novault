@@ -67,7 +67,7 @@ export default function SetupMasterKeyModal({
       );
 
       addLog("key", "Nonce (12 bytes)", encryptedResult.nonce_hex);
-      addLog("key", "Auth Tag (16 bytes)", encryptedResult.auth_tag_hex);
+      // addLog("key", "Auth Tag (16 bytes)", encryptedResult.auth_tag_hex);
       addLog("key", "Encrypted Master Key", encryptedResult.encrypted_key_hex);
 
       addLog("info", "Saving encrypted master key to database...");
@@ -78,7 +78,6 @@ export default function SetupMasterKeyModal({
         salt,
         encryptedMasterKey: encryptedResult.encrypted_key_hex,
         nonce: encryptedResult.nonce_hex,
-        authTag: encryptedResult.auth_tag_hex,
       });
 
       if (!result.success) {

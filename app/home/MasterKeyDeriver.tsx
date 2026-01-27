@@ -35,7 +35,7 @@ export default function MasterKeyDeriver({ userEmail }: { userEmail: string }) {
       );
 
       addLog("key", "Nonce (12 bytes)", encryptedResult.nonce_hex);
-      addLog("key", "Auth Tag (16 bytes)", encryptedResult.auth_tag_hex);
+      // addLog("key", "Auth Tag (16 bytes)", encryptedResult.auth_tag_hex);
       addLog("key", "Encrypted Master Key", encryptedResult.encrypted_key_hex);
       addLog("success", "Master key encryption complete!");
 

@@ -23,7 +23,6 @@ export interface SaveUserSecretsInput {
   salt: string;
   encryptedMasterKey: string;
   nonce: string;
-  authTag: string;
 }
 
 export interface SaveUserSecretsResult {
