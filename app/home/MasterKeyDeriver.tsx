@@ -29,10 +29,7 @@ export default function MasterKeyDeriver({ userEmail }: { userEmail: string }) {
       addLog("info", "Generating 12-byte nonce...");
       addLog("info", "Encrypting master key with AES-256-GCM...");
 
-      const encryptedResult = wasm.generate_encrypted_master_key(
-        userInput,
-        userEmail,
-      );
+      const encryptedResult = wasm.encrypt_master_key(userInput, userEmail);
 
       addLog("key", "Nonce (12 bytes)", encryptedResult.nonce_hex);
       // addLog("key", "Auth Tag (16 bytes)", encryptedResult.auth_tag_hex);

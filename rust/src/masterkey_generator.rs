@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 use aes_gcm::{
-    Aes256Gcm, Nonce, aead::{Aead, AeadCore, Key, KeyInit, OsRng, generic_array::GenericArray}
+    Aes256Gcm, aead::{Aead, Key, KeyInit, OsRng, generic_array::GenericArray}
 };
 
 // Re-export functions from lib
@@ -44,30 +44,28 @@ impl EncryptedMasterKey {
 }
 
 /// Generates a random 32-byte master key
-fn generate_master_key() -> Vec<u8> {
-    let key : Key<Aes256Gcm> = Aes256Gcm::generate_key(&mut OsRng);
-    key.to_vec()
+fn generate_master_key() -> Key<Aes256Gcm> {
+    Aes256Gcm::generate_key(&mut OsRng)
 }
 
 #[wasm_bindgen]
-pub fn generate_encrypted_master_key(input: &str, salt: &str) -> EncryptedMasterKey {
+pub fn encrypt_master_key(input: &str, salt: &str) -> EncryptedMasterKey {
     // Generate the data encryption key from input
     let encryption_key = get_encryption_key(input, salt);
     log(&to_hex(&encryption_key));
 
-    // Generate a 12-byte nonce
-    let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
-    log(&to_hex(&nonce));
 
     // Create AES-256-GCM cipher
     let key = GenericArray::from_slice(&encryption_key);
     let cipher = Aes256Gcm::new(key);
     let master_key = generate_master_key();
-    log(&to_hex(&master_key));
+    let nonce = generate_nonce();
+    log(&to_hex(&nonce));
+    log(&to_hex(master_key.as_slice()));
 
     // Encrypt the master key
     let ciphertext = cipher
-        .encrypt(&nonce, master_key.as_ref())
+        .encrypt(&nonce, master_key.as_slice())
         .expect("Failed to encrypt master key");
     
     // full ciphertext (32 bytes encrypted key + 16 bytes auth tag)
