@@ -3,14 +3,15 @@ import { redirect } from "next/navigation";
 import { signOut, getUserProfile, getUserSecrets } from "./actions";
 import HomeClient from "./HomeClient";
 import VerifyMasterKey from "@/components/VerifyMasterKey";
-
+import MasterKeyDeriver from "./MasterKeyDeriver";
+  
 export default async function HomePage() {
   const supabase = await createClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
+   
   if (!user) {
     redirect("/login");
   }
@@ -43,7 +44,7 @@ export default async function HomePage() {
         </div>
 
         {hasMasterKey && <VerifyMasterKey userId={user.id} />}
-
+      <MasterKeyDeriver userEmail={user.email || ""} />
         <form action={signOut}>
           <button className="bg-red-500 text-foreground px-4 py-2 rounded">
             Sign Out
@@ -52,4 +53,4 @@ export default async function HomePage() {
       </div>
     </HomeClient>
   );
-}
+ }

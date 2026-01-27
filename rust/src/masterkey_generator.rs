@@ -18,7 +18,6 @@ pub use crate::{generate_nonce, get_encryption_key, to_hex, alert, log};
 #[wasm_bindgen]
 pub struct EncryptedMasterKey {
     nonce: Vec<u8>,
-    //auth_tag: Vec<u8>,
     encrypted_key: Vec<u8>,
 }
 
@@ -29,11 +28,6 @@ impl EncryptedMasterKey {
         self.nonce.clone()
     }
 
-    // #[wasm_bindgen(getter)]
-    // pub fn auth_tag(&self) -> Vec<u8> {
-    //     self.auth_tag.clone()
-    // }
-
     #[wasm_bindgen(getter)]
     pub fn encrypted_key(&self) -> Vec<u8> {
         self.encrypted_key.clone()
@@ -43,12 +37,6 @@ impl EncryptedMasterKey {
     pub fn nonce_hex(&self) -> String {
         to_hex(&self.nonce)
     }
-
-    // #[wasm_bindgen(getter)]
-    // pub fn auth_tag_hex(&self) -> String {
-    //     to_hex(&self.auth_tag)
-    // }
-
     #[wasm_bindgen(getter)]
     pub fn encrypted_key_hex(&self) -> String {
         to_hex(&self.encrypted_key)
@@ -77,12 +65,12 @@ pub fn generate_encrypted_master_key(input: &str, salt: &str) -> EncryptedMaster
     let master_key = generate_master_key();
     log(&to_hex(&master_key));
 
-    // Encrypt the master key (result includes ciphertext + 16-byte auth tag)
+    // Encrypt the master key
     let ciphertext = cipher
         .encrypt(&nonce, master_key.as_ref())
         .expect("Failed to encrypt master key");
     
-    // Store the full ciphertext (32 bytes encrypted key + 16 bytes auth tag = 48 bytes)
+    // full ciphertext (32 bytes encrypted key + 16 bytes auth tag)
     let mk_nonce = nonce.to_vec();
     
     EncryptedMasterKey {

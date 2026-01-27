@@ -109,7 +109,7 @@ pub fn decrypt_master_key(
             };
         }
     };
-
+  
     // The encrypted_key should be 48 bytes (32 bytes ciphertext + 16 bytes auth tag)
     if encrypted_bytes.len() != 48 {
         log(&format!("Invalid encrypted key length: {}", encrypted_bytes.len()));
