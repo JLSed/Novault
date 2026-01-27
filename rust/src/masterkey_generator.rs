@@ -82,14 +82,11 @@ pub fn generate_encrypted_master_key(input: &str, salt: &str) -> EncryptedMaster
         .encrypt(&nonce, master_key.as_ref())
         .expect("Failed to encrypt master key");
     
-    // Split them: ciphertext is first 32 bytes, auth tag is last 16 bytes
-    let encrypted_key = ciphertext[..32].to_vec();
-    let auth_tag = ciphertext[32..].to_vec();
+    // Store the full ciphertext (32 bytes encrypted key + 16 bytes auth tag = 48 bytes)
     let mk_nonce = nonce.to_vec();
     
     EncryptedMasterKey {
         nonce: mk_nonce,
-        //auth_tag,
-        encrypted_key,
+        encrypted_key: ciphertext,
     }
 }

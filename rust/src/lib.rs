@@ -5,6 +5,7 @@ use getrandom::getrandom;
 
 
 pub mod masterkey_generator;
+pub mod masterkey_decryptor;
 // pub mod encrypt_file;
 
 // Fixed pepper - 4rD^grSXyRwJ~Wuc5vcHL5
