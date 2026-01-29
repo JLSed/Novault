@@ -18,13 +18,14 @@ extern "C" {
 }
 
 /// Derives a 32-byte key with pepper
-pub fn get_encryption_key(input: &str, salt: &str) -> Vec<u8> {
+pub fn get_key_encryption_key(input: &str, salt: &str) -> Vec<u8> {
     let paminta = get_paminta();
-    // Combine user input with pepper
+ 
+    // combine input with pepper
     let mut input_with_pepper = input.as_bytes().to_vec();
     input_with_pepper.extend_from_slice(&paminta);
 
-    // Configure Argon2id with secure parameters
+    // argon2id config
     let params = Params::new(
         65536,  // 64 MB memory cost
         3,      // 3 iterations
@@ -34,13 +35,12 @@ pub fn get_encryption_key(input: &str, salt: &str) -> Vec<u8> {
 
     let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
 
-    // Derive the key
-    let mut output_key = vec![0u8; 32];
+    let mut derived_key = vec![0u8; 32];
     argon2
-        .hash_password_into(&input_with_pepper, salt.as_bytes(), &mut output_key)
+        .hash_password_into(&input_with_pepper, salt.as_bytes(), &mut derived_key)
         .expect("Failed to hash password");
 
-    output_key
+    derived_key 
 }
 
 // - 4rD^grSXyRwJ~Wuc5vcHL5
@@ -52,28 +52,39 @@ fn get_paminta() -> Vec<u8> {
     ]
 }
 
-/// Converts byte slice to hex string
-pub fn to_hex(data: &[u8]) -> String {
+pub fn bytes_to_hex(data: &[u8]) -> String {
     data.iter().map(|b| format!("{:02x}", b)).collect()
 }
 
-/// Generates a cryptographically secure 12-byte nonce (internal use)
+pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, String> {
+    if hex.len() % 2 != 0 {
+        return Err("Invalid hex string length".to_string());
+    }
+
+    (0..hex.len())
+        .step_by(2)
+        .map(|i| {
+            u8::from_str_radix(&hex[i..i + 2], 16)
+                .map_err(|_| format!("Invalid hex character at position {}", i))
+        })
+        .collect()
+}
+
+/// Generates a cryptographically secure 12-byte nonce
 pub fn generate_nonce() -> Nonce {
     Aes256Gcm::generate_nonce(&mut OsRng)
 }
 
-/// Returns the derived key as a hex string
 #[wasm_bindgen]
-pub fn master_key_to_hex(input: &str, salt: &str) -> String {
-    let key = get_encryption_key(input, salt);
-    to_hex(&key)
+pub fn master_key_bytes_to_hex(input: &str, salt: &str) -> String {
+    let key = get_key_encryption_key(input, salt);
+    bytes_to_hex(&key)
 }
 
-/// Returns the generated nonce as a hex string
 #[wasm_bindgen]
 pub fn generate_nonce_hex() -> String {
     let nonce = generate_nonce();
-    to_hex(nonce.as_slice())
+    bytes_to_hex(nonce.as_slice())
 }
 
 

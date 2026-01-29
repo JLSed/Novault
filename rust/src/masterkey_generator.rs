@@ -4,7 +4,7 @@ use aes_gcm::{
 };
 
 // Re-export functions from lib
-pub use crate::{generate_nonce, get_encryption_key, to_hex, alert, log};
+pub use crate::{generate_nonce, get_key_encryption_key, bytes_to_hex, alert, log};
 
 
 /// Encrypts a master key using AES-256-GCM
@@ -35,11 +35,11 @@ impl EncryptedMasterKey {
 
     #[wasm_bindgen(getter)]
     pub fn nonce_hex(&self) -> String {
-        to_hex(&self.nonce)
+        bytes_to_hex(&self.nonce)
     }
     #[wasm_bindgen(getter)]
     pub fn encrypted_key_hex(&self) -> String {
-        to_hex(&self.encrypted_key)
+        bytes_to_hex(&self.encrypted_key)
     }
 }
 
@@ -51,8 +51,8 @@ fn generate_master_key() -> Key<Aes256Gcm> {
 #[wasm_bindgen]
 pub fn encrypt_master_key(input: &str, salt: &str) -> EncryptedMasterKey {
     // Generate the data encryption key from input
-    let encryption_key = get_encryption_key(input, salt);
-    log(&to_hex(&encryption_key));
+    let encryption_key = get_key_encryption_key(input, salt);
+    log(&bytes_to_hex(&encryption_key));
 
 
     // Create AES-256-GCM cipher
@@ -60,8 +60,8 @@ pub fn encrypt_master_key(input: &str, salt: &str) -> EncryptedMasterKey {
     let cipher = Aes256Gcm::new(key);
     let master_key = generate_master_key();
     let nonce = generate_nonce();
-    log(&to_hex(&nonce));
-    log(&to_hex(master_key.as_slice()));
+    log(&bytes_to_hex(&nonce));
+    log(&bytes_to_hex(master_key.as_slice()));
 
     // Encrypt the master key
     let ciphertext = cipher

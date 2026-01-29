@@ -3,10 +3,8 @@ use aes_gcm::{
     Aes256Gcm, Nonce, aead::{Aead, KeyInit, generic_array::GenericArray}
 };
 
-// Re-export functions from lib
-pub use crate::{get_encryption_key, to_hex, log};
+pub use crate::{get_key_encryption_key, bytes_to_hex, hex_to_bytes, log};
 
-/// Result of master key decryption
 #[wasm_bindgen]
 pub struct DecryptedMasterKey {
     success: bool,
@@ -29,7 +27,7 @@ impl DecryptedMasterKey {
     #[wasm_bindgen(getter)]
     pub fn master_key_hex(&self) -> String {
         if self.success {
-            to_hex(&self.master_key)
+            bytes_to_hex(&self.master_key)
         } else {
             String::new()
         }
@@ -41,31 +39,6 @@ impl DecryptedMasterKey {
     }
 }
 
-/// Converts a hex string to bytes
-fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, String> {
-    if hex.len() % 2 != 0 {
-        return Err("Invalid hex string length".to_string());
-    }
-
-    (0..hex.len())
-        .step_by(2)
-        .map(|i| {
-            u8::from_str_radix(&hex[i..i + 2], 16)
-                .map_err(|_| format!("Invalid hex character at position {}", i))
-        })
-        .collect()
-}
-
-/// Decrypts the master key using AES-256-GCM
-/// 
-/// # Arguments
-/// * `password` - User's master password
-/// * `salt` - Salt used for key derivation (user's email)
-/// * `encrypted_key_hex` - The encrypted master key in hex format (includes auth tag)
-/// * `nonce_hex` - The nonce/IV used during encryption in hex format
-/// 
-/// # Returns
-/// A DecryptedMasterKey struct containing the decrypted master key or error
 #[wasm_bindgen]
 pub fn decrypt_master_key(
     password: &str,
@@ -110,7 +83,7 @@ pub fn decrypt_master_key(
         }
     };
   
-    // The encrypted_key should be 48 bytes (32 bytes ciphertext + 16 bytes auth tag)
+    // The encrypted_key should be 48 bytes 
     if encrypted_bytes.len() != 48 {
         log(&format!("Invalid encrypted key length: {}", encrypted_bytes.len()));
         return DecryptedMasterKey {
@@ -122,8 +95,8 @@ pub fn decrypt_master_key(
 
     // Derive the encryption key from password and salt (includes paminta internally)
     log("Deriving encryption key from password...");
-    let encryption_key = get_encryption_key(password, salt);
-    log(&format!("Derived key: {}", to_hex(&encryption_key)));
+    let encryption_key = get_key_encryption_key(password, salt);
+    log(&format!("Derived key: {}", bytes_to_hex(&encryption_key)));
 
     // Create the cipher
     let key = GenericArray::from_slice(&encryption_key);
@@ -135,7 +108,7 @@ pub fn decrypt_master_key(
     match cipher.decrypt(nonce, encrypted_bytes.as_ref()) {
         Ok(decrypted) => {
             log("Decryption successful!");
-            log(&format!("Decrypted master key: {}", to_hex(&decrypted)));
+            log(&format!("Decrypted master key: {}", bytes_to_hex(&decrypted)));
             DecryptedMasterKey {
                 success: true,
                 master_key: decrypted,

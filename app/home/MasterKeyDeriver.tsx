@@ -22,7 +22,7 @@ export default function MasterKeyDeriver({ userEmail }: { userEmail: string }) {
       addLog("success", "WASM module loaded");
 
       addLog("info", "Deriving encryption key from password...");
-      const derivedKey = wasm.master_key_to_hex(userInput, userEmail);
+      const derivedKey = wasm.master_key_bytes_to_hex(userInput, userEmail);
       addLog("key", "Encryption Key (DEK)", derivedKey);
 
       addLog("info", "Generating random master key...");
