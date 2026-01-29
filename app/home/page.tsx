@@ -5,6 +5,8 @@ import HomeClient from "./HomeClient";
 import VerifyMasterKey from "@/components/test/VerifyMasterKey";
 import MasterKeyDeriver from "@/components/test/MasterKeyDeriver";
 import { HomeNavBar } from "@/components/HomeNavbar";
+import FileEncryptor from "@/components/test/FileEncryptor";
+import FileDecryptor from "@/components/test/FileDecryptor";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -33,9 +35,11 @@ export default async function HomePage() {
         userEmail={user.email || ""}
         hasMasterKey={hasMasterKey}
       >
-        <div className="flex flex-col items-center gap-4 p-8">
+        <div className="grid grid-cols-2 gap-4 p-8">
           {hasMasterKey && <VerifyMasterKey userId={user.id} />}
           <MasterKeyDeriver userEmail={user.email || ""} />
+          <FileEncryptor userId={user.id} />
+          <FileDecryptor userId={user.id} />
         </div>
       </HomeClient>
     </>
