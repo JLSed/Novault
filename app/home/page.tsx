@@ -2,8 +2,8 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { getUserProfile, getUserSecrets } from "./actions";
 import HomeClient from "./HomeClient";
-import VerifyMasterKey from "@/components/VerifyMasterKey";
-import MasterKeyDeriver from "./MasterKeyDeriver";
+import VerifyMasterKey from "@/components/test/VerifyMasterKey";
+import MasterKeyDeriver from "@/components/test/MasterKeyDeriver";
 import { HomeNavBar } from "@/components/HomeNavbar";
 
 export default async function HomePage() {
@@ -23,29 +23,17 @@ export default async function HomePage() {
 
   return (
     <>
-      <HomeNavBar />
+      <HomeNavBar
+        userEmail={user.email || ""}
+        userRole={userProfile?.role || "user"}
+        hasMasterKey={hasMasterKey}
+      />
       <HomeClient
         userId={user.id}
         userEmail={user.email || ""}
         hasMasterKey={hasMasterKey}
       >
         <div className="flex flex-col items-center gap-4 p-8">
-          <div className="flex flex-col items-center gap-2">
-            <h1 className="text-2xl font-bold">{user.email}</h1>
-            <span className="text-sm text-gray-500 capitalize">
-              Role: {userProfile?.role || "user"}
-            </span>
-            {hasMasterKey ? (
-              <span className="text-sm text-green-600">
-                ✓ Master key configured
-              </span>
-            ) : (
-              <span className="text-sm text-orange-500">
-                ⚠ Master key not set
-              </span>
-            )}
-          </div>
-
           {hasMasterKey && <VerifyMasterKey userId={user.id} />}
           <MasterKeyDeriver userEmail={user.email || ""} />
         </div>

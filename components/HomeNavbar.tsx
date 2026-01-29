@@ -1,8 +1,33 @@
 import { signOut } from "@/app/home/actions";
 
-export const HomeNavBar = () => {
+interface HomeNavBarProps {
+  userEmail: string;
+  userRole: string;
+  hasMasterKey?: boolean;
+}
+
+export const HomeNavBar = ({
+  userEmail,
+  userRole,
+  hasMasterKey,
+}: HomeNavBarProps) => {
   return (
-    <div className="flex justify-end gap-4 px-8 py-4 w-full">
+    <div className="flex justify-end gap-4 px-4 py-4 w-full">
+      <div className="flex-1">
+        {hasMasterKey ? (
+          <span className="text-sm text-green-600">
+            ✓ Master key configured
+          </span>
+        ) : (
+          <span className="text-sm text-orange-500">⚠ Master key not set</span>
+        )}
+      </div>
+      <div className="flex flex-col items-end">
+        <span className="text-sm font-medium text-foreground">{userEmail}</span>
+        <span className="text-xs text-gray-500 capitalize">
+          Role: {userRole}
+        </span>
+      </div>
       <form action={signOut}>
         <button
           type="submit"
