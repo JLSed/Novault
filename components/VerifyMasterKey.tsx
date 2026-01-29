@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useConsole } from "@/components/ConsoleContext";
 import { getUserSecrets } from "@/app/home/actions";
 
 interface VerifyMasterKeyProps {
@@ -16,39 +15,22 @@ export default function VerifyMasterKey({ userId }: VerifyMasterKeyProps) {
     masterKey?: string;
     error?: string;
   } | null>(null);
-  const { addLog, clearLogs } = useConsole();
 
   const handleVerify = async () => {
     if (!password) return;
 
     setLoading(true);
     setResult(null);
-    clearLogs();
 
     try {
-      addLog("info", "Fetching user secrets from database...");
       const secrets = await getUserSecrets(userId);
 
       if (!secrets) {
         throw new Error("No secrets found for this user");
       }
 
-      addLog("success", "Secrets retrieved successfully");
-      addLog("key", "Salt", secrets.salt);
-      addLog("key", "Nonce", secrets.mk_nonce);
-      addLog(
-        "key",
-        "Encrypted Master Key",
-        secrets.encrypted_master_key.substring(0, 32) + "...",
-      );
-
-      addLog("info", "Initializing WASM module...");
       const wasm = await import("@/pkg/rust");
       await wasm.default();
-      addLog("success", "WASM module loaded");
-
-      addLog("info", "Deriving encryption key from password...");
-      addLog("info", "Attempting to decrypt master key...");
 
       const decryptResult = wasm.decrypt_master_key(
         password,
@@ -58,14 +40,11 @@ export default function VerifyMasterKey({ userId }: VerifyMasterKeyProps) {
       );
 
       if (decryptResult.success) {
-        addLog("success", "Master key decrypted successfully!");
-        addLog("key", "Decrypted Master Key", decryptResult.master_key_hex);
         setResult({
           success: true,
           masterKey: decryptResult.master_key_hex,
         });
       } else {
-        addLog("error", "Decryption failed", decryptResult.error_message);
         setResult({
           success: false,
           error: decryptResult.error_message,
@@ -74,7 +53,6 @@ export default function VerifyMasterKey({ userId }: VerifyMasterKeyProps) {
     } catch (err) {
       console.error("Error verifying master key:", err);
       const errorMessage = err instanceof Error ? err.message : String(err);
-      addLog("error", "Verification failed", errorMessage);
       setResult({
         success: false,
         error: errorMessage,
@@ -87,7 +65,6 @@ export default function VerifyMasterKey({ userId }: VerifyMasterKeyProps) {
   const handleClear = () => {
     setPassword("");
     setResult(null);
-    clearLogs();
   };
 
   return (

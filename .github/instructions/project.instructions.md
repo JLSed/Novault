@@ -79,6 +79,14 @@ public/           # Static assets
 
 ---
 
+## Debugging Guidelines
+
+27. **Add console.log statements when performing important operations** for better debugging. Log function entry, key parameters, and results/errors.
+28. Use descriptive log messages with context (e.g., `console.log("[FunctionName] Starting with:", params)`).
+29. Always log errors with `console.error` including the error object for stack traces.
+
+---
+
 ## Supabase Guidelines
 
 19. **Use the `api` schema for all database queries.** The `public` schema is restricted for security. Always use `.schema("api")` before `.from()` in queries.

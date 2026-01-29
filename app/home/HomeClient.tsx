@@ -2,15 +2,7 @@
 
 import { ReactNode, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ConsoleProvider } from "@/components/ConsoleContext";
-import Console from "@/components/CryptoConsole";
-import { useConsole } from "@/components/ConsoleContext";
 import SetupMasterKeyModal from "@/components/SetupMasterKeyModal";
-
-function GlobalConsole() {
-  const { logs } = useConsole();
-  return <Console title="Web Assembly" logs={logs} height="h-48" />;
-}
 
 interface HomeClientProps {
   children: ReactNode;
@@ -19,7 +11,7 @@ interface HomeClientProps {
   hasMasterKey: boolean;
 }
 
-function HomeClientContent({
+export default function HomeClient({
   children,
   userId,
   userEmail,
@@ -42,26 +34,6 @@ function HomeClientContent({
         onComplete={handleSetupComplete}
       />
       <div className="flex-1 w-full h-full">{children}</div>
-      <GlobalConsole />
     </div>
-  );
-}
-
-export default function HomeClient({
-  children,
-  userId,
-  userEmail,
-  hasMasterKey,
-}: HomeClientProps) {
-  return (
-    <ConsoleProvider>
-      <HomeClientContent
-        userId={userId}
-        userEmail={userEmail}
-        hasMasterKey={hasMasterKey}
-      >
-        {children}
-      </HomeClientContent>
-    </ConsoleProvider>
   );
 }
