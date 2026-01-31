@@ -1,4 +1,7 @@
-import { signOut } from "@/app/home/actions";
+"use client";
+
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { useSidebar } from "./SidebarContext";
 
 interface HomeNavBarProps {
   userEmail: string;
@@ -11,8 +14,23 @@ export const HomeNavBar = ({
   userRole,
   hasMasterKey,
 }: HomeNavBarProps) => {
+  const { isCollapsed, toggleSidebar } = useSidebar();
+
   return (
-    <div className="flex justify-end gap-4 px-4 py-4 w-full">
+    <div className="flex items-center gap-4 px-4 py-3 w-full border-b border-gray-200">
+      {/* Sidebar Toggle Button */}
+      <button
+        onClick={toggleSidebar}
+        className="p-2 rounded-lg text-gray-500 hover:text-foreground hover:bg-gray-100 transition-colors"
+        aria-label={isCollapsed ? "Open sidebar" : "Close sidebar"}
+      >
+        {isCollapsed ? (
+          <PanelLeftOpen size={20} />
+        ) : (
+          <PanelLeftClose size={20} />
+        )}
+      </button>
+
       <div className="flex-1">
         {hasMasterKey ? (
           <span className="text-sm text-green-600">
@@ -28,14 +46,6 @@ export const HomeNavBar = ({
           Role: {userRole}
         </span>
       </div>
-      <form action={signOut}>
-        <button
-          type="submit"
-          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
-        >
-          Sign Out
-        </button>
-      </form>
     </div>
   );
 };

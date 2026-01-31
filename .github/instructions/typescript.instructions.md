@@ -1,5 +1,5 @@
 ---
-applyTo: "**/*.ts, **/*.tsx"
+applyTo: "**"
 ---
 
 These instructions guide GitHub Copilot to generate high-quality, modern JavaScript and TypeScript code following established best practices.

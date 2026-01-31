@@ -9,6 +9,7 @@ interface HomeClientProps {
   userId: string;
   userEmail: string;
   hasMasterKey: boolean;
+  userRole?: string;
 }
 
 export default function HomeClient({
@@ -26,7 +27,7 @@ export default function HomeClient({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
+    <div className="flex flex-col h-full">
       <SetupMasterKeyModal
         isOpen={showModal}
         userEmail={userEmail}
