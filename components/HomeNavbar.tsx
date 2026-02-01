@@ -6,12 +6,14 @@ import { useSidebar } from "./SidebarContext";
 interface HomeNavBarProps {
   userEmail: string;
   userRole: string;
+  userName?: string;
   hasMasterKey?: boolean;
 }
 
 export const HomeNavBar = ({
   userEmail,
   userRole,
+  userName,
   hasMasterKey,
 }: HomeNavBarProps) => {
   const { isCollapsed, toggleSidebar, setMobileOpen } = useSidebar();
@@ -50,7 +52,7 @@ export const HomeNavBar = ({
         )}
       </div>
       <div className="flex flex-col items-end">
-        <span className="text-sm font-medium text-foreground">{userEmail}</span>
+        <span className="text-sm font-medium text-foreground">{userName}</span>
         <span className="text-xs text-gray-500 capitalize">
           Role: {userRole}
         </span>

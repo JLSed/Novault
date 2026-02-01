@@ -24,6 +24,15 @@ export default async function HomeLayout({
   const userSecrets = await getUserSecrets(user.id);
   const hasMasterKey = !!userSecrets;
 
+  let formattedName = user.email || "";
+  if (userProfile?.first_name && userProfile?.last_name) {
+    const firstInitial = userProfile.first_name.charAt(0).toUpperCase();
+    const middleInitial = userProfile.middle_name
+      ? `${userProfile.middle_name.charAt(0).toUpperCase()}. `
+      : "";
+    formattedName = `${firstInitial}. ${middleInitial}${userProfile.last_name}`;
+  }
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen">
@@ -31,6 +40,7 @@ export default async function HomeLayout({
         <div className="flex-1 flex flex-col overflow-auto">
           <HomeNavBar
             userEmail={user.email || ""}
+            userName={formattedName}
             userRole={userProfile?.role || "user"}
             hasMasterKey={hasMasterKey}
           />

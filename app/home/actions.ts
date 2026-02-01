@@ -7,6 +7,9 @@ export interface UserProfile {
   user_id: string;
   role: string;
   created_at: string;
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
 }
 
 export interface UserSecret {
