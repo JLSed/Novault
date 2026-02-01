@@ -3,9 +3,9 @@ import Link from "next/link";
 
 export default function LoginPage() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
+    <div className="flex flex-col items-center w-full px-4">
       <h1 className="text-2xl font-black mb-4">Login</h1>
-      <form className="flex flex-col gap-4 p-8 w-lg">
+      <form className="flex flex-col gap-4 p-6 sm:p-8 w-full max-w-md">
         <div className="flex flex-col gap-2">
           <label htmlFor="email">Email:</label>
           <input

@@ -6,19 +6,19 @@ export default async function SignupPage(props: {
 }) {
   const searchParams = await props.searchParams;
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
+    <div className="flex flex-col items-center w-full px-4">
       <h1 className="text-2xl font-black mb-4">Sign Up</h1>
       {searchParams.message && (
-        <div className="bg-primary/10 border border-primary text-primary px-4 py-3 rounded relative mb-4 w-lg">
+        <div className="bg-primary/10 border border-primary text-primary px-4 py-3 rounded relative mb-4 w-full max-w-md">
           {searchParams.message}
         </div>
       )}
       {searchParams.error && (
-        <div className="bg-primary/10 border border-primary text-primary px-4 py-3 rounded relative mb-4">
+        <div className="bg-primary/10 border border-primary text-primary px-4 py-3 rounded relative mb-4 w-full max-w-md">
           {searchParams.error}
         </div>
       )}
-      <form className="flex flex-col gap-4  p-8 w-lg">
+      <form className="flex flex-col gap-4 p-6 sm:p-8 w-full max-w-md">
         <div className="flex flex-col gap-2">
           <label htmlFor="email">Email:</label>
           <input
