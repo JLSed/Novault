@@ -92,7 +92,7 @@ export default function VerifyMasterKey({ userId }: VerifyMasterKeyProps) {
           <button
             onClick={handleVerify}
             disabled={loading || !password}
-            className="flex-1 bg-foreground text-background p-2 rounded cursor-pointer disabled:opacity-50"
+            className="flex-1 bg-foreground text-background p-2 rounded   disabled:opacity-50"
           >
             {loading ? "Verifying..." : "Verify"}
           </button>
@@ -100,7 +100,7 @@ export default function VerifyMasterKey({ userId }: VerifyMasterKeyProps) {
           {result && (
             <button
               onClick={handleClear}
-              className="px-4 py-2 border border-foreground/20 rounded cursor-pointer"
+              className="px-4 py-2 border border-foreground/20 rounded  "
             >
               Clear
             </button>

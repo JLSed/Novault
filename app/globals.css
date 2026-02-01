@@ -31,4 +31,8 @@
   div {
     @apply font-onest;
   }
+
+  button {
+    @apply cursor-pointer;
+  }
 }

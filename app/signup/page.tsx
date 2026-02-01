@@ -41,7 +41,7 @@ export default async function SignupPage(props: {
         </div>
         <button
           formAction={signup}
-          className="bg-primary text-background p-2 rounded cursor-pointer"
+          className="bg-primary text-background p-2 rounded  "
         >
           Sign up
         </button>

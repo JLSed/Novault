@@ -212,7 +212,7 @@ export default function FileEncryptor({ userId }: FileEncryptorProps) {
           <button
             onClick={handleEncrypt}
             disabled={loading || !file || !password}
-            className="flex-1 bg-foreground text-background p-2 rounded cursor-pointer disabled:opacity-50"
+            className="flex-1 bg-foreground text-background p-2 rounded   disabled:opacity-50"
           >
             {loading ? "Encrypting..." : "Encrypt"}
           </button>
@@ -220,7 +220,7 @@ export default function FileEncryptor({ userId }: FileEncryptorProps) {
           {(file || result) && (
             <button
               onClick={handleClear}
-              className="px-4 py-2 border border-foreground/20 rounded cursor-pointer"
+              className="px-4 py-2 border border-foreground/20 rounded  "
               disabled={loading}
             >
               Clear
@@ -266,7 +266,7 @@ export default function FileEncryptor({ userId }: FileEncryptorProps) {
 
                 <button
                   onClick={handleDownload}
-                  className="mt-2 bg-green-600 text-white p-2 rounded cursor-pointer hover:bg-green-700"
+                  className="mt-2 bg-green-600 text-white p-2 rounded   hover:bg-green-700"
                 >
                   Download Encrypted File
                 </button>

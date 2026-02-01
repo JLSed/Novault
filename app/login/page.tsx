@@ -28,7 +28,7 @@ export default function LoginPage() {
         </div>
         <button
           formAction={login}
-          className="bg-primary text-white p-2 rounded cursor-pointer"
+          className="bg-primary text-white p-2 rounded  "
         >
           Log in
         </button>

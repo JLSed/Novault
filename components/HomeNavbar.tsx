@@ -1,6 +1,6 @@
 "use client";
 
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Menu } from "lucide-react";
 import { useSidebar } from "./SidebarContext";
 
 interface HomeNavBarProps {
@@ -14,14 +14,23 @@ export const HomeNavBar = ({
   userRole,
   hasMasterKey,
 }: HomeNavBarProps) => {
-  const { isCollapsed, toggleSidebar } = useSidebar();
+  const { isCollapsed, toggleSidebar, setMobileOpen } = useSidebar();
 
   return (
     <div className="flex items-center gap-4 px-4 py-3 w-full border-b border-gray-200">
-      {/* Sidebar Toggle Button */}
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="p-2 rounded-lg text-gray-500 hover:text-foreground hover:bg-gray-100 transition-colors md:hidden"
+        aria-label="Open menu"
+      >
+        <Menu size={20} />
+      </button>
+
+      {/* Sidebar Toggle Button - Desktop only */}
       <button
         onClick={toggleSidebar}
-        className="p-2 rounded-lg text-gray-500 hover:text-foreground hover:bg-gray-100 transition-colors"
+        className="hidden md:block p-2 rounded-lg text-gray-500 hover:text-foreground hover:bg-gray-100 transition-colors"
         aria-label={isCollapsed ? "Open sidebar" : "Close sidebar"}
       >
         {isCollapsed ? (

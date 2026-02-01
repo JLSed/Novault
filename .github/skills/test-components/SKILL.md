@@ -62,16 +62,16 @@ export default function TestComponentName({
 
 Use these consistent classes:
 
-| Element          | Classes                                                                               |
-| ---------------- | ------------------------------------------------------------------------------------- |
-| Container        | `w-full max-w-md p-4 border border-foreground/20 rounded`                             |
-| Header           | `text-xl font-bold mb-4`                                                              |
-| Input            | `border border-foreground/20 p-2 rounded text-foreground bg-background`               |
-| Primary Button   | `flex-1 bg-foreground text-background p-2 rounded cursor-pointer disabled:opacity-50` |
-| Secondary Button | `px-4 py-2 border border-foreground/20 rounded cursor-pointer`                        |
-| Success Result   | `p-3 rounded bg-green-100 text-green-800 text-sm`                                     |
-| Error Result     | `p-3 rounded bg-red-100 text-red-800 text-sm`                                         |
-| Code Display     | `text-xs break-all bg-green-200 p-1 rounded`                                          |
+| Element          | Classes                                                                 |
+| ---------------- | ----------------------------------------------------------------------- |
+| Container        | `w-full max-w-md p-4 border border-foreground/20 rounded`               |
+| Header           | `text-xl font-bold mb-4`                                                |
+| Input            | `border border-foreground/20 p-2 rounded text-foreground bg-background` |
+| Primary Button   | `flex-1 bg-foreground text-background p-2 rounded disabled:opacity-50`  |
+| Secondary Button | `px-4 py-2 border border-foreground/20 rounded`                         |
+| Success Result   | `p-3 rounded bg-green-100 text-green-800 text-sm`                       |
+| Error Result     | `p-3 rounded bg-red-100 text-red-800 text-sm`                           |
+| Code Display     | `text-xs break-all bg-green-200 p-1 rounded`                            |
 
 ## Required Features
 

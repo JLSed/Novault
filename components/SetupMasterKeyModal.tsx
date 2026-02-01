@@ -117,7 +117,7 @@ export default function SetupMasterKeyModal({
           <button
             type="submit"
             disabled={loading || !password || !confirmPassword}
-            className="bg-primary text-background p-3 rounded-lg font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed mt-4 transition-opacity hover:opacity-90"
+            className="bg-primary text-background p-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed mt-4 transition-opacity hover:opacity-90"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
