@@ -39,10 +39,8 @@ export default async function HomeLayout({
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-auto">
           <HomeNavBar
-            userEmail={user.email || ""}
             userName={formattedName}
             userRole={userProfile?.role || "user"}
-            hasMasterKey={hasMasterKey}
           />
           <main className="flex-1 overflow-auto">{children}</main>
         </div>

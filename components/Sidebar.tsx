@@ -2,16 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "@/app/home/actions";
 import {
   LayoutDashboard,
   BarChart3,
   Link2,
   HardDrive,
   ScrollText,
-  Settings,
   HelpCircle,
-  LogOut,
 } from "lucide-react";
 import { useSidebar } from "./SidebarContext";
 
@@ -50,11 +47,6 @@ const overviewItems: NavItem[] = [
 ];
 
 const bottomItems: NavItem[] = [
-  {
-    label: "Settings",
-    href: "/home/settings",
-    icon: <Settings size={20} />,
-  },
   {
     label: "Help",
     href: "/home/help",
@@ -169,22 +161,6 @@ export default function Sidebar() {
                 </span>
               </Link>
             ))}
-
-            {/* Log Out Button */}
-            <form action={signOut}>
-              <button
-                type="submit"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-red-400 hover:text-background hover:bg-red-400/40 w-full"
-                title={isCollapsed ? "Log Out" : undefined}
-              >
-                <span className="shrink-0">
-                  <LogOut size={20} />
-                </span>
-                <span className={`text-sm ${isCollapsed ? "md:hidden" : ""}`}>
-                  Log Out
-                </span>
-              </button>
-            </form>
           </nav>
         </div>
       </aside>
