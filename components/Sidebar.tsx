@@ -2,57 +2,214 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import {
   LayoutDashboard,
   BarChart3,
   Link2,
   HardDrive,
   ScrollText,
-  HelpCircle,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { useSidebar } from "./SidebarContext";
 
-interface NavItem {
+/** Represents a sub-item within a navigation item */
+export interface NavSubItem {
+  label: string;
+  href: string;
+}
+
+/** Represents a navigation item with optional children */
+export interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
+  children?: NavSubItem[];
 }
 
-const overviewItems: NavItem[] = [
+/** Represents a group of navigation items with a label */
+export interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+/** Configuration for sidebar navigation groups */
+const navGroups: NavGroup[] = [
   {
-    label: "Dashboard",
-    href: "/home",
-    icon: <LayoutDashboard size={20} />,
-  },
-  {
-    label: "Analytics",
-    href: "/home/analytics",
-    icon: <BarChart3 size={20} />,
-  },
-  {
-    label: "File Chain",
-    href: "/home/file-chain",
-    icon: <Link2 size={20} />,
-  },
-  {
-    label: "Storage",
-    href: "/home/storage",
-    icon: <HardDrive size={20} />,
-  },
-  {
-    label: "Audit Logs",
-    href: "/home/audit-logs",
-    icon: <ScrollText size={20} />,
+    label: "Overview",
+    items: [
+      {
+        label: "Dashboard",
+        href: "/home",
+        icon: <LayoutDashboard size={20} />,
+      },
+      {
+        label: "Analytics",
+        href: "/home/analytics",
+        icon: <BarChart3 size={20} />,
+      },
+      {
+        label: "File Chain",
+        href: "/home/file-chain",
+        icon: <Link2 size={20} />,
+      },
+      {
+        label: "Storage",
+        href: "/home/storage",
+        icon: <HardDrive size={20} />,
+        children: [
+          { label: "All Files", href: "/home/storage/files" },
+          { label: "Shared", href: "/home/storage/shared" },
+          { label: "Trash", href: "/home/storage/trash" },
+        ],
+      },
+      {
+        label: "Audit Logs",
+        href: "/home/audit-logs",
+        icon: <ScrollText size={20} />,
+      },
+    ],
   },
 ];
 
-const bottomItems: NavItem[] = [
-  {
-    label: "Help",
-    href: "/home/help",
-    icon: <HelpCircle size={20} />,
-  },
-];
+interface NavItemComponentProps {
+  item: NavItem;
+  isCollapsed: boolean;
+  isActive: (href: string) => boolean;
+  onNavigate: () => void;
+}
+
+/** Renders a single navigation item with optional expandable children */
+function NavItemComponent({
+  item,
+  isCollapsed,
+  isActive,
+  onNavigate,
+}: NavItemComponentProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const hasChildren = item.children && item.children.length > 0;
+  const itemActive = isActive(item.href);
+  const childActive = item.children?.some((child) => isActive(child.href));
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (hasChildren && !isCollapsed) {
+      e.preventDefault();
+      setIsExpanded(!isExpanded);
+    } else {
+      onNavigate();
+    }
+  };
+
+  return (
+    <div>
+      <Link
+        href={item.href}
+        onClick={handleClick}
+        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+          itemActive || childActive
+            ? "bg-background/30 text-background"
+            : "text-background/80 hover:text-background hover:bg-background/10"
+        }`}
+        title={isCollapsed ? item.label : undefined}
+      >
+        <span className="shrink-0">{item.icon}</span>
+        <span className={`text-sm flex-1 ${isCollapsed ? "md:hidden" : ""}`}>
+          {item.label}
+        </span>
+        {hasChildren && !isCollapsed && (
+          <span className="shrink-0 md:block hidden">
+            {isExpanded ? (
+              <ChevronDown size={16} />
+            ) : (
+              <ChevronRight size={16} />
+            )}
+          </span>
+        )}
+      </Link>
+
+      {/* Sub-items */}
+      {hasChildren && isExpanded && !isCollapsed && (
+        <div className="ml-6 mt-1 space-y-1 hidden md:block">
+          {item.children!.map((child) => (
+            <Link
+              key={child.href}
+              href={child.href}
+              onClick={onNavigate}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                isActive(child.href)
+                  ? "bg-background/20 text-background"
+                  : "text-background/70 hover:text-background hover:bg-background/10"
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
+              {child.label}
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* Mobile sub-items (always visible when parent is active) */}
+      {hasChildren && (
+        <div className="ml-6 mt-1 space-y-1 md:hidden">
+          {item.children!.map((child) => (
+            <Link
+              key={child.href}
+              href={child.href}
+              onClick={onNavigate}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                isActive(child.href)
+                  ? "bg-background/20 text-background"
+                  : "text-background/70 hover:text-background hover:bg-background/10"
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
+              {child.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface NavGroupComponentProps {
+  group: NavGroup;
+  isCollapsed: boolean;
+  isActive: (href: string) => boolean;
+  onNavigate: () => void;
+}
+
+/** Renders a group of navigation items with a label */
+function NavGroupComponent({
+  group,
+  isCollapsed,
+  isActive,
+  onNavigate,
+}: NavGroupComponentProps) {
+  return (
+    <div className="py-4">
+      <span
+        className={`px-4 text-xs text-background/30 uppercase tracking-wider ${
+          isCollapsed ? "md:hidden" : ""
+        }`}
+      >
+        {group.label}
+      </span>
+      <nav className="mt-2 space-y-1 px-2">
+        {group.items.map((item) => (
+          <NavItemComponent
+            key={item.href}
+            item={item}
+            isCollapsed={isCollapsed}
+            isActive={isActive}
+            onNavigate={onNavigate}
+          />
+        ))}
+      </nav>
+    </div>
+  );
+}
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -111,57 +268,17 @@ export default function Sidebar() {
           )}
         </div>
 
-        {/* Overview Section */}
-        <div className="flex-1 py-4">
-          <span
-            className={`px-4 text-xs text-background/30 uppercase tracking-wider ${isCollapsed ? "md:hidden" : ""}`}
-          >
-            Overview
-          </span>
-          <nav className="mt-2 space-y-2 px-2">
-            {overviewItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={handleNavClick}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                  isActive(item.href)
-                    ? "bg-background/30 text-background"
-                    : "text-background/80 hover:text-background hover:bg-background/10"
-                }`}
-                title={isCollapsed ? item.label : undefined}
-              >
-                <span className="shrink-0">{item.icon}</span>
-                <span className={`text-sm ${isCollapsed ? "md:hidden" : ""}`}>
-                  {item.label}
-                </span>
-              </Link>
-            ))}
-          </nav>
-        </div>
-
-        {/* Bottom Section */}
-        <div className="py-4 border-t border-background/50">
-          <nav className="space-y-2 px-2">
-            {bottomItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={handleNavClick}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                  isActive(item.href)
-                    ? "bg-background/30 text-background"
-                    : "text-background/75 hover:text-background hover:bg-background/10"
-                }`}
-                title={isCollapsed ? item.label : undefined}
-              >
-                <span className="shrink-0">{item.icon}</span>
-                <span className={`text-sm ${isCollapsed ? "md:hidden" : ""}`}>
-                  {item.label}
-                </span>
-              </Link>
-            ))}
-          </nav>
+        {/* Navigation Groups */}
+        <div className="flex-1 overflow-y-auto">
+          {navGroups.map((group) => (
+            <NavGroupComponent
+              key={group.label}
+              group={group}
+              isCollapsed={isCollapsed}
+              isActive={isActive}
+              onNavigate={handleNavClick}
+            />
+          ))}
         </div>
       </aside>
     </>
