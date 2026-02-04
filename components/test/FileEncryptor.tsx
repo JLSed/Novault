@@ -63,37 +63,21 @@ export default function FileEncryptor({ userId }: FileEncryptorProps) {
       const wasm = await import("@/pkg/rust");
       await wasm.default();
 
-      // Step 3: Decrypt the master key using the password
-      console.log("[FileEncryptor] Decrypting master key...");
-      const decryptResult = wasm.decrypt_master_key(
-        password,
-        secrets.salt,
-        secrets.encrypted_master_key,
-        secrets.mk_nonce,
-      );
-
-      if (!decryptResult.success) {
-        console.error(
-          "[FileEncryptor] Master key decryption failed:",
-          decryptResult.error_message,
-        );
-        throw new Error(
-          `Master key decryption failed: ${decryptResult.error_message}`,
-        );
-      }
-
-      console.log("[FileEncryptor] Master key decrypted successfully");
-      const masterKeyHex = decryptResult.master_key_hex;
-
-      // Step 4: Read file as ArrayBuffer
+      // Step 3: Read file as ArrayBuffer
       console.log("[FileEncryptor] Reading file...");
       const fileBuffer = await file.arrayBuffer();
       const fileData = new Uint8Array(fileBuffer);
       console.log("[FileEncryptor] File read, size:", fileData.length, "bytes");
 
-      // Step 5: Encrypt the file using the master key
+      // Step 4: Encrypt the file
       console.log("[FileEncryptor] Encrypting file...");
-      const encryptResult = wasm.encrypt_file(fileData, masterKeyHex);
+      const encryptResult = wasm.encrypt_file(
+        fileData,
+        password,
+        secrets.salt,
+        secrets.encrypted_master_key,
+        secrets.mk_nonce,
+      );
 
       if (!encryptResult.success) {
         console.error(

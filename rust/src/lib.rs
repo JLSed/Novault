@@ -3,6 +3,7 @@ use argon2::{Argon2, Algorithm, Version, Params};
 use aes_gcm::{
     Aes256Gcm, aead::{AeadCore, OsRng, generic_array::GenericArray, consts::U12}
 };
+use sha2::{Sha256, Digest};
 
 pub mod masterkey_generator;
 pub mod masterkey_decryptor;
@@ -52,6 +53,18 @@ fn get_paminta() -> Vec<u8> {
         53, 118, 99, 72, 76, 53              // 5vcHL5
     ]
 }
+
+/// Computes SHA-256 hash of the given data
+pub fn hash_file(data: &[u8]) -> String {
+    log("[hash_file] Computing SHA-256 hash...");
+    let mut hasher = Sha256::new();
+    hasher.update(data);
+    let result = hasher.finalize();
+    let hash_hex = bytes_to_hex(&result);
+    log(&format!("[hash_file] Hash computed: {}", hash_hex));
+    hash_hex
+}
+
 
 pub fn bytes_to_hex(data: &[u8]) -> String {
     data.iter().map(|b| format!("{:02x}", b)).collect()

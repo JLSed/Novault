@@ -6,6 +6,7 @@ import VerifyMasterKey from "@/components/test/VerifyMasterKey";
 import MasterKeyDeriver from "@/components/test/MasterKeyDeriver";
 import FileEncryptor from "@/components/test/FileEncryptor";
 import FileDecryptor from "@/components/test/FileDecryptor";
+import StorageBucketUploader from "@/components/test/StorageBucketUploader";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -34,6 +35,7 @@ export default async function HomePage() {
         <MasterKeyDeriver userEmail={user.email || ""} />
         <FileEncryptor userId={user.id} />
         <FileDecryptor userId={user.id} />
+        <StorageBucketUploader />
       </div>
     </HomeClient>
   );

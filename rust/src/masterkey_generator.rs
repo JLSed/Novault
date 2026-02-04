@@ -54,7 +54,6 @@ pub fn encrypt_master_key(input: &str, salt: &str) -> EncryptedMasterKey {
     let encryption_key = get_key_encryption_key(input, salt);
     log(&bytes_to_hex(&encryption_key));
 
-
     // Create AES-256-GCM cipher
     let key = GenericArray::from_slice(&encryption_key);
     let cipher = Aes256Gcm::new(key);

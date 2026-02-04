@@ -11,6 +11,8 @@ import {
   ScrollText,
   ChevronDown,
   ChevronRight,
+  Users,
+  FileText,
 } from "lucide-react";
 import { useSidebar } from "./SidebarContext";
 
@@ -45,6 +47,11 @@ const navGroups: NavGroup[] = [
         icon: <LayoutDashboard size={20} />,
       },
       {
+        label: "Filling Forms",
+        href: "/home/forms",
+        icon: <FileText size={20} />,
+      },
+      {
         label: "Analytics",
         href: "/home/analytics",
         icon: <BarChart3 size={20} />,
@@ -55,19 +62,30 @@ const navGroups: NavGroup[] = [
         icon: <Link2 size={20} />,
       },
       {
+        label: "Audit Logs",
+        href: "/home/audit-logs",
+        icon: <ScrollText size={20} />,
+      },
+    ],
+  },
+  {
+    label: "Management",
+    items: [
+      {
         label: "Storage",
         href: "/home/storage",
         icon: <HardDrive size={20} />,
         children: [
-          { label: "All Files", href: "/home/storage/files" },
-          { label: "Shared", href: "/home/storage/shared" },
-          { label: "Trash", href: "/home/storage/trash" },
+          { label: "Patent", href: "/home/storage/patent" },
+          { label: "Copyright", href: "/home/storage/copyright" },
+          { label: "Trademark", href: "/home/storage/trademark" },
         ],
       },
       {
-        label: "Audit Logs",
-        href: "/home/audit-logs",
-        icon: <ScrollText size={20} />,
+        label: "User Management",
+        href: "/home/user",
+        icon: <Users size={20} />,
+        children: [{ label: "something", href: "/home/user/trademark" }],
       },
     ],
   },
