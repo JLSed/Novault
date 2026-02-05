@@ -1,19 +1,179 @@
 use wasm_bindgen::prelude::*;
 use aes_gcm::{
-    Aes256Gcm, Nonce, aead::{Aead, KeyInit, generic_array::GenericArray}
+    Aes256Gcm, Nonce, aead::{Aead, KeyInit, OsRng, generic_array::GenericArray}
 };
-use crate::masterkey_decryptor::decrypt_master_key;
+use x25519_dalek::{PublicKey, StaticSecret};
 
 pub use crate::{generate_nonce, bytes_to_hex, hex_to_bytes, hash_file, log};
 
 /// Result of file encryption operation
+/// 
+/// The encryption process:
+/// 1. Generate a random DEK (Data Encryption Key)
+/// 2. Encrypt the file using the DEK with AES-256-GCM
+/// 3. Generate an ephemeral X25519 key pair
+/// 4. Perform ECDH with recipient's public key to derive a shared secret
+/// 5. Encrypt the DEK using the shared secret with AES-256-GCM
 #[wasm_bindgen]
 pub struct EncryptedFileResult {
     success: bool,
     encrypted_data: Vec<u8>,
-    nonce_hex: String,
+    file_nonce_hex: String,
+    encrypted_dek: Vec<u8>,
+    dek_nonce_hex: String,
+    ephemeral_public_key: Vec<u8>,
     original_hash_hex: String,
     error_message: String,
+}
+
+/// Encrypts file data using hybrid encryption (X25519 + AES-256-GCM)
+/// 
+/// # Arguments
+/// * `file_data` - The raw file bytes to encrypt
+/// * `recipient_public_key_hex` - The recipient's X25519 public key in hex format
+/// 
+/// # Returns
+/// EncryptedFileResult containing:
+/// - encrypted_data: The encrypted file bytes
+/// - file_nonce_hex: Nonce used for file encryption
+/// - encrypted_dek: The encrypted Data Encryption Key
+/// - dek_nonce_hex: Nonce used for DEK encryption
+/// - ephemeral_public_key: The ephemeral public key for ECDH
+/// - original_hash_hex: SHA-256 hash of the original file
+#[wasm_bindgen]
+pub fn encrypt_file(
+    file_data: &[u8], 
+    recipient_public_key_hex: &str,
+) -> EncryptedFileResult {
+    log("[encrypt_file] Starting file encryption...");
+    log(&format!("[encrypt_file] File size: {} bytes", file_data.len()));
+
+    // Parse the recipient's public key
+    let public_key_bytes = match hex_to_bytes(recipient_public_key_hex) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            log(&format!("[encrypt_file] Failed to parse public key: {}", e));
+            return EncryptedFileResult {
+                success: false,
+                encrypted_data: vec![],
+                file_nonce_hex: String::new(),
+                encrypted_dek: vec![],
+                dek_nonce_hex: String::new(),
+                ephemeral_public_key: vec![],
+                original_hash_hex: String::new(),
+                error_message: format!("Invalid public key format: {}", e),
+            };
+        }
+    };
+
+    if public_key_bytes.len() != 32 {
+        log(&format!("[encrypt_file] Invalid public key length: {}", public_key_bytes.len()));
+        return EncryptedFileResult {
+            success: false,
+            encrypted_data: vec![],
+            file_nonce_hex: String::new(),
+            encrypted_dek: vec![],
+            dek_nonce_hex: String::new(),
+            ephemeral_public_key: vec![],
+            original_hash_hex: String::new(),
+            error_message: format!("Public key must be 32 bytes, got {}", public_key_bytes.len()),
+        };
+    }
+
+    let recipient_public_key: [u8; 32] = public_key_bytes.try_into().unwrap();
+    let recipient_public = PublicKey::from(recipient_public_key);
+
+    // Step 1: Generate a random DEK (Data Encryption Key)
+    log("[encrypt_file] Generating random DEK...");
+    let dek_secret = StaticSecret::random_from_rng(OsRng);
+    let dek: [u8; 32] = dek_secret.to_bytes();
+    log(&format!("[encrypt_file] DEK generated: {}", bytes_to_hex(&dek)));
+
+    // Step 2: Compute the original file hash
+    log("[encrypt_file] Computing original file hash...");
+    let original_hash = hash_file(file_data);
+
+    // Step 3: Encrypt the file using the DEK
+    log("[encrypt_file] Encrypting file with DEK...");
+    let file_nonce = generate_nonce();
+    let file_nonce_hex = bytes_to_hex(file_nonce.as_slice());
+    log(&format!("[encrypt_file] File nonce: {}", file_nonce_hex));
+
+    let dek_key = GenericArray::from_slice(&dek);
+    let file_cipher = Aes256Gcm::new(dek_key);
+    let file_nonce_ga = Nonce::from_slice(file_nonce.as_slice());
+
+    let encrypted_file_data = match file_cipher.encrypt(file_nonce_ga, file_data) {
+        Ok(encrypted) => {
+            log(&format!("[encrypt_file] File encrypted! Size: {} bytes", encrypted.len()));
+            encrypted
+        }
+        Err(e) => {
+            log(&format!("[encrypt_file] File encryption failed: {}", e));
+            return EncryptedFileResult {
+                success: false,
+                encrypted_data: vec![],
+                file_nonce_hex: String::new(),
+                encrypted_dek: vec![],
+                dek_nonce_hex: String::new(),
+                ephemeral_public_key: vec![],
+                original_hash_hex: String::new(),
+                error_message: format!("File encryption failed: {}", e),
+            };
+        }
+    };
+
+    // Step 4: Generate ephemeral key pair and perform ECDH
+    log("[encrypt_file] Generating ephemeral key pair for ECDH...");
+    let ephemeral_secret = StaticSecret::random_from_rng(OsRng);
+    let ephemeral_public = PublicKey::from(&ephemeral_secret);
+    log(&format!("[encrypt_file] Ephemeral public key: {}", bytes_to_hex(ephemeral_public.as_bytes())));
+
+    // Derive shared secret using ECDH
+    let shared_secret = ephemeral_secret.diffie_hellman(&recipient_public);
+    log("[encrypt_file] Shared secret derived via ECDH");
+
+    // Step 5: Encrypt the DEK using the shared secret
+    log("[encrypt_file] Encrypting DEK with shared secret...");
+    let dek_nonce = generate_nonce();
+    let dek_nonce_hex = bytes_to_hex(dek_nonce.as_slice());
+    log(&format!("[encrypt_file] DEK nonce: {}", dek_nonce_hex));
+
+    let shared_key = GenericArray::from_slice(shared_secret.as_bytes());
+    let dek_cipher = Aes256Gcm::new(shared_key);
+    let dek_nonce_ga = Nonce::from_slice(dek_nonce.as_slice());
+
+    let encrypted_dek = match dek_cipher.encrypt(dek_nonce_ga, dek.as_ref()) {
+        Ok(encrypted) => {
+            log(&format!("[encrypt_file] DEK encrypted! Size: {} bytes", encrypted.len()));
+            encrypted
+        }
+        Err(e) => {
+            log(&format!("[encrypt_file] DEK encryption failed: {}", e));
+            return EncryptedFileResult {
+                success: false,
+                encrypted_data: vec![],
+                file_nonce_hex: String::new(),
+                encrypted_dek: vec![],
+                dek_nonce_hex: String::new(),
+                ephemeral_public_key: vec![],
+                original_hash_hex: String::new(),
+                error_message: format!("DEK encryption failed: {}", e),
+            };
+        }
+    };
+
+    log("[encrypt_file] Encryption complete!");
+    EncryptedFileResult {
+        success: true,
+        encrypted_data: encrypted_file_data,
+        file_nonce_hex,
+        encrypted_dek,
+        dek_nonce_hex,
+        ephemeral_public_key: ephemeral_public.as_bytes().to_vec(),
+        original_hash_hex: original_hash,
+        error_message: String::new(),
+    }
 }
 
 #[wasm_bindgen]
@@ -29,8 +189,33 @@ impl EncryptedFileResult {
     }
 
     #[wasm_bindgen(getter)]
-    pub fn nonce_hex(&self) -> String {
-        self.nonce_hex.clone()
+    pub fn file_nonce_hex(&self) -> String {
+        self.file_nonce_hex.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn encrypted_dek(&self) -> Vec<u8> {
+        self.encrypted_dek.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn encrypted_dek_hex(&self) -> String {
+        bytes_to_hex(&self.encrypted_dek)
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn dek_nonce_hex(&self) -> String {
+        self.dek_nonce_hex.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn ephemeral_public_key(&self) -> Vec<u8> {
+        self.ephemeral_public_key.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn ephemeral_public_key_hex(&self) -> String {
+        bytes_to_hex(&self.ephemeral_public_key)
     }
 
     #[wasm_bindgen(getter)]
@@ -41,97 +226,5 @@ impl EncryptedFileResult {
     #[wasm_bindgen(getter)]
     pub fn error_message(&self) -> String {
         self.error_message.clone()
-    }
-}
-
-/// Encrypts file data using AES-256-GCM with the provided master key
-/// 
-/// # Arguments
-/// * `file_data` - The raw file bytes to encrypt
-/// * `password` - The user's password to decrypt the master key
-/// * `salt` - The salt used for key derivation
-/// * `encrypted_master_key_hex` - The encrypted master key hex
-/// * `master_key_nonce_hex` - The nonce used for master key encryption
-/// 
-/// # Returns
-/// EncryptedFileResult containing encrypted data, nonce, and original file hash
-#[wasm_bindgen]
-pub fn encrypt_file(
-    file_data: &[u8], 
-    password: &str, 
-    salt: &str, 
-    encrypted_master_key_hex: &str, 
-    master_key_nonce_hex: &str
-) -> EncryptedFileResult {
-    log("[encrypt_file] Starting file encryption...");
-    log(&format!("[encrypt_file] File size: {} bytes", file_data.len()));
-
-    // Decrypt the master key
-    log("[encrypt_file] Decrypting master key...");
-    let decrypted_key_result = decrypt_master_key(password, salt, encrypted_master_key_hex, master_key_nonce_hex);
-
-    if !decrypted_key_result.success() {
-        log(&format!("[encrypt_file] Master key decryption failed: {}", decrypted_key_result.error_message()));
-        return EncryptedFileResult {
-            success: false,
-            encrypted_data: vec![],
-            nonce_hex: String::new(),
-            original_hash_hex: String::new(),
-            error_message: format!("Master key decryption failed: {}", decrypted_key_result.error_message()),
-        };
-    }
-
-    let master_key_bytes = decrypted_key_result.master_key();
-
-    // Validate master key length 
-    if master_key_bytes.len() != 32 {
-        log(&format!("[encrypt_file] Invalid master key length: {}", master_key_bytes.len()));
-        return EncryptedFileResult {
-            success: false,
-            encrypted_data: vec![],
-            nonce_hex: String::new(),
-            original_hash_hex: String::new(),
-            error_message: format!("Master key must be 32 bytes, got {}", master_key_bytes.len()),
-        };
-    }
-
-    // Compute the original file hash
-    log("[encrypt_file] Computing original file hash...");
-    let original_hash = hash_file(file_data);
-
-    // Generate a random nonce
-    log("[encrypt_file] Generating nonce...");
-    let nonce = generate_nonce();
-    let nonce_hex = bytes_to_hex(nonce.as_slice());
-    log(&format!("[encrypt_file] Nonce: {}", nonce_hex));
-
-    // Create the AES-256-GCM cipher
-    let key = GenericArray::from_slice(&master_key_bytes);
-    let cipher = Aes256Gcm::new(key);
-    let nonce_ga = Nonce::from_slice(nonce.as_slice());
-
-    // Encrypt the file data
-    log("[encrypt_file] Encrypting file data...");
-    match cipher.encrypt(nonce_ga, file_data) {
-        Ok(encrypted) => {
-            log(&format!("[encrypt_file] Encryption successful! Encrypted size: {} bytes", encrypted.len()));
-            EncryptedFileResult {
-                success: true,
-                encrypted_data: encrypted,
-                nonce_hex,
-                original_hash_hex: original_hash,
-                error_message: String::new(),
-            }
-        }
-        Err(e) => {
-            log(&format!("[encrypt_file] Encryption failed: {}", e));
-            EncryptedFileResult {
-                success: false,
-                encrypted_data: vec![],
-                nonce_hex: String::new(),
-                original_hash_hex: String::new(),
-                error_message: format!("Encryption failed: {}", e),
-            }
-        }
     }
 }

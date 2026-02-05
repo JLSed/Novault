@@ -10,7 +10,10 @@ interface FileEncryptorProps {
 interface EncryptionResult {
   success: boolean;
   encryptedData?: Uint8Array;
-  nonceHex?: string;
+  fileNonceHex?: string;
+  encryptedDekHex?: string;
+  dekNonceHex?: string;
+  ephemeralPublicKeyHex?: string;
   originalHashHex?: string;
   fileName?: string;
   error?: string;
@@ -18,7 +21,6 @@ interface EncryptionResult {
 
 export default function FileEncryptor({ userId }: FileEncryptorProps) {
   const [file, setFile] = useState<File | null>(null);
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<EncryptionResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -34,11 +36,11 @@ export default function FileEncryptor({ userId }: FileEncryptorProps) {
   };
 
   /**
-   * Encrypts the selected file using AES-256-GCM with the master key
+   * Encrypts the selected file using hybrid encryption (X25519 + AES-256-GCM)
    */
   const handleEncrypt = async () => {
-    if (!file || !password) {
-      console.log("[FileEncryptor] Missing file or password");
+    if (!file) {
+      console.log("[FileEncryptor] Missing file");
       return;
     }
 
@@ -69,15 +71,9 @@ export default function FileEncryptor({ userId }: FileEncryptorProps) {
       const fileData = new Uint8Array(fileBuffer);
       console.log("[FileEncryptor] File read, size:", fileData.length, "bytes");
 
-      // Step 4: Encrypt the file
-      console.log("[FileEncryptor] Encrypting file...");
-      const encryptResult = wasm.encrypt_file(
-        fileData,
-        password,
-        secrets.salt,
-        secrets.encrypted_master_key,
-        secrets.mk_nonce,
-      );
+      // Step 4: Encrypt the file using the user's public key
+      console.log("[FileEncryptor] Encrypting file with public key...");
+      const encryptResult = wasm.encrypt_file(fileData, secrets.public_key);
 
       if (!encryptResult.success) {
         console.error(
@@ -90,7 +86,12 @@ export default function FileEncryptor({ userId }: FileEncryptorProps) {
       }
 
       console.log("[FileEncryptor] File encrypted successfully");
-      console.log("[FileEncryptor] Nonce:", encryptResult.nonce_hex);
+      console.log("[FileEncryptor] File nonce:", encryptResult.file_nonce_hex);
+      console.log("[FileEncryptor] DEK nonce:", encryptResult.dek_nonce_hex);
+      console.log(
+        "[FileEncryptor] Ephemeral public key:",
+        encryptResult.ephemeral_public_key_hex,
+      );
       console.log(
         "[FileEncryptor] Original file hash:",
         encryptResult.original_hash_hex,
@@ -104,7 +105,10 @@ export default function FileEncryptor({ userId }: FileEncryptorProps) {
       setResult({
         success: true,
         encryptedData: encryptResult.encrypted_data,
-        nonceHex: encryptResult.nonce_hex,
+        fileNonceHex: encryptResult.file_nonce_hex,
+        encryptedDekHex: encryptResult.encrypted_dek_hex,
+        dekNonceHex: encryptResult.dek_nonce_hex,
+        ephemeralPublicKeyHex: encryptResult.ephemeral_public_key_hex,
         originalHashHex: encryptResult.original_hash_hex,
         fileName: file.name,
       });
@@ -151,7 +155,6 @@ export default function FileEncryptor({ userId }: FileEncryptorProps) {
    */
   const handleClear = () => {
     setFile(null);
-    setPassword("");
     setResult(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -180,22 +183,11 @@ export default function FileEncryptor({ userId }: FileEncryptorProps) {
           )}
         </div>
 
-        {/* Password Input */}
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleEncrypt()}
-          className="border border-foreground/20 p-2 rounded text-foreground bg-background"
-          placeholder="Enter master password"
-          disabled={loading}
-        />
-
         {/* Action Buttons */}
         <div className="flex gap-2">
           <button
             onClick={handleEncrypt}
-            disabled={loading || !file || !password}
+            disabled={loading || !file}
             className="flex-1 bg-foreground text-background p-2 rounded   disabled:opacity-50"
           >
             {loading ? "Encrypting..." : "Encrypt"}
@@ -226,9 +218,30 @@ export default function FileEncryptor({ userId }: FileEncryptorProps) {
                 <span className="font-semibold">✓ Encryption Successful!</span>
 
                 <div className="flex flex-col gap-1">
-                  <span className="font-medium">Nonce (12 bytes):</span>
+                  <span className="font-medium">File Nonce:</span>
                   <code className="text-xs break-all bg-green-200 p-1 rounded">
-                    {result.nonceHex}
+                    {result.fileNonceHex}
+                  </code>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <span className="font-medium">Encrypted DEK:</span>
+                  <code className="text-xs break-all bg-green-200 p-1 rounded">
+                    {result.encryptedDekHex}
+                  </code>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <span className="font-medium">DEK Nonce:</span>
+                  <code className="text-xs break-all bg-green-200 p-1 rounded">
+                    {result.dekNonceHex}
+                  </code>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <span className="font-medium">Ephemeral Public Key:</span>
+                  <code className="text-xs break-all bg-green-200 p-1 rounded">
+                    {result.ephemeralPublicKeyHex}
                   </code>
                 </div>
 

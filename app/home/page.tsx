@@ -32,7 +32,7 @@ export default async function HomePage() {
     >
       <div className="grid grid-cols-2 gap-4 p-8">
         {hasMasterKey && <VerifyMasterKey userId={user.id} />}
-        <MasterKeyDeriver userEmail={user.email || ""} />
+        <MasterKeyDeriver />
         <FileEncryptor userId={user.id} />
         <FileDecryptor userId={user.id} />
         <StorageBucketUploader />

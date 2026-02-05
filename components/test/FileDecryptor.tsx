@@ -18,7 +18,10 @@ interface DecryptionResult {
 export default function FileDecryptor({ userId }: FileDecryptorProps) {
   const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState("");
-  const [nonceHex, setNonceHex] = useState("");
+  const [fileNonceHex, setFileNonceHex] = useState("");
+  const [encryptedDekHex, setEncryptedDekHex] = useState("");
+  const [dekNonceHex, setDekNonceHex] = useState("");
+  const [ephemeralPublicKeyHex, setEphemeralPublicKeyHex] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DecryptionResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -34,11 +37,18 @@ export default function FileDecryptor({ userId }: FileDecryptorProps) {
   };
 
   /**
-   * Decrypts the selected encrypted file using AES-256-GCM with the master key
+   * Decrypts the selected encrypted file using hybrid decryption (X25519 + AES-256-GCM)
    */
   const handleDecrypt = async () => {
-    if (!file || !password || !nonceHex) {
-      console.log("[FileDecryptor] Missing file, password, or nonce");
+    if (
+      !file ||
+      !password ||
+      !fileNonceHex ||
+      !encryptedDekHex ||
+      !dekNonceHex ||
+      !ephemeralPublicKeyHex
+    ) {
+      console.log("[FileDecryptor] Missing required fields");
       return;
     }
 
@@ -63,29 +73,7 @@ export default function FileDecryptor({ userId }: FileDecryptorProps) {
       const wasm = await import("@/pkg/rust");
       await wasm.default();
 
-      // Step 3: Decrypt the master key using the password
-      console.log("[FileDecryptor] Decrypting master key...");
-      const decryptKeyResult = wasm.decrypt_master_key(
-        password,
-        secrets.salt,
-        secrets.encrypted_master_key,
-        secrets.mk_nonce,
-      );
-
-      if (!decryptKeyResult.success) {
-        console.error(
-          "[FileDecryptor] Master key decryption failed:",
-          decryptKeyResult.error_message,
-        );
-        throw new Error(
-          `Master key decryption failed: ${decryptKeyResult.error_message}`,
-        );
-      }
-
-      console.log("[FileDecryptor] Master key decrypted successfully");
-      const masterKeyHex = decryptKeyResult.master_key_hex;
-
-      // Step 4: Read encrypted file as ArrayBuffer
+      // Step 3: Read encrypted file as ArrayBuffer
       console.log("[FileDecryptor] Reading encrypted file...");
       const fileBuffer = await file.arrayBuffer();
       const encryptedData = new Uint8Array(fileBuffer);
@@ -95,12 +83,21 @@ export default function FileDecryptor({ userId }: FileDecryptorProps) {
         "bytes",
       );
 
-      // Step 5: Decrypt the file using the master key and nonce
-      console.log("[FileDecryptor] Decrypting file...");
+      // Step 4: Decrypt the file using hybrid decryption
+      // Private key decryption happens internally within WASM - sensitive data never leaves the WASM boundary
+      console.log(
+        "[FileDecryptor] Decrypting file (private key decryption happens internally)...",
+      );
       const decryptResult = wasm.decrypt_file(
         encryptedData,
-        masterKeyHex,
-        nonceHex.trim(),
+        password,
+        secrets.pk_salt,
+        secrets.encrypted_private_key,
+        secrets.pk_nonce,
+        ephemeralPublicKeyHex.trim(),
+        encryptedDekHex.trim(),
+        dekNonceHex.trim(),
+        fileNonceHex.trim(),
       );
 
       if (!decryptResult.success) {
@@ -179,12 +176,23 @@ export default function FileDecryptor({ userId }: FileDecryptorProps) {
   const handleClear = () => {
     setFile(null);
     setPassword("");
-    setNonceHex("");
+    setFileNonceHex("");
+    setEncryptedDekHex("");
+    setDekNonceHex("");
+    setEphemeralPublicKeyHex("");
     setResult(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
+
+  const isFormValid =
+    file &&
+    password &&
+    fileNonceHex &&
+    encryptedDekHex &&
+    dekNonceHex &&
+    ephemeralPublicKeyHex;
 
   return (
     <div className="w-full max-w-md p-4 border border-foreground/20 rounded">
@@ -210,17 +218,62 @@ export default function FileDecryptor({ userId }: FileDecryptorProps) {
           )}
         </div>
 
-        {/* Nonce Input */}
+        {/* File Nonce Input */}
         <div className="flex flex-col gap-1">
           <label className="text-sm text-foreground/70">
-            Nonce (from encryption)
+            File Nonce (from encryption)
           </label>
           <input
             type="text"
-            value={nonceHex}
-            onChange={(e) => setNonceHex(e.target.value)}
+            value={fileNonceHex}
+            onChange={(e) => setFileNonceHex(e.target.value)}
             className="border border-foreground/20 p-2 rounded text-foreground bg-background font-mono text-sm"
             placeholder="Enter 24-character hex nonce"
+            disabled={loading}
+          />
+        </div>
+
+        {/* Encrypted DEK Input */}
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-foreground/70">
+            Encrypted DEK (from encryption)
+          </label>
+          <input
+            type="text"
+            value={encryptedDekHex}
+            onChange={(e) => setEncryptedDekHex(e.target.value)}
+            className="border border-foreground/20 p-2 rounded text-foreground bg-background font-mono text-sm"
+            placeholder="Enter encrypted DEK hex"
+            disabled={loading}
+          />
+        </div>
+
+        {/* DEK Nonce Input */}
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-foreground/70">
+            DEK Nonce (from encryption)
+          </label>
+          <input
+            type="text"
+            value={dekNonceHex}
+            onChange={(e) => setDekNonceHex(e.target.value)}
+            className="border border-foreground/20 p-2 rounded text-foreground bg-background font-mono text-sm"
+            placeholder="Enter 24-character hex nonce"
+            disabled={loading}
+          />
+        </div>
+
+        {/* Ephemeral Public Key Input */}
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-foreground/70">
+            Ephemeral Public Key (from encryption)
+          </label>
+          <input
+            type="text"
+            value={ephemeralPublicKeyHex}
+            onChange={(e) => setEphemeralPublicKeyHex(e.target.value)}
+            className="border border-foreground/20 p-2 rounded text-foreground bg-background font-mono text-sm"
+            placeholder="Enter 64-character hex public key"
             disabled={loading}
           />
         </div>
@@ -240,7 +293,7 @@ export default function FileDecryptor({ userId }: FileDecryptorProps) {
         <div className="flex gap-2">
           <button
             onClick={handleDecrypt}
-            disabled={loading || !file || !password || !nonceHex}
+            disabled={loading || !isFormValid}
             className="flex-1 bg-foreground text-background p-2 rounded   disabled:opacity-50"
           >
             {loading ? "Decrypting..." : "Decrypt"}

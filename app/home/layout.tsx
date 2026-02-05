@@ -35,7 +35,7 @@ export default async function HomeLayout({
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen h-full">
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-auto">
           <HomeNavBar

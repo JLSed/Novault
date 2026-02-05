@@ -1,5 +1,5 @@
 use wasm_bindgen::prelude::*;
-use argon2::{Argon2, Algorithm, Version, Params};
+use argon2::{Argon2, Algorithm, Version, Params, password_hash::SaltString};
 use aes_gcm::{
     Aes256Gcm, aead::{AeadCore, OsRng, generic_array::GenericArray, consts::U12}
 };

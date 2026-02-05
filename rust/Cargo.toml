@@ -9,6 +9,8 @@ argon2 = "0.5"
 getrandom = { version = "0.2", features = ["js"] }
 sha2 = "0.10"
 wasm-bindgen = "0.2"
+x25519-dalek = { version = "2.0", features = ["static_secrets"] }
+hkdf = "0.12"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

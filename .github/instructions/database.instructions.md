@@ -524,6 +524,11 @@ REFRESH MATERIALIZED VIEW user_order_stats;
 - Test backup restoration procedures
 - **If a function is SECURITY DEFINER, always pin the search_path** - This is critical because the definer's privileges apply, and an unpinned search_path could allow privilege escalation attacks
 - **Wrap auth/session function calls in scalar subqueries for RLS policies** - Direct calls like `auth.uid()` or `current_setting('...')` inside USING or WITH CHECK are volatile and re-evaluated per row, causing CPU overhead for bulk operations. Use `(SELECT auth.uid())` instead of `auth.uid()` for more efficient execution plans
+- **View Security Guidelines**:
+  - **Remove SECURITY DEFINER from the view**: Best when the view doesn't need elevated privileges. Recreate without it so access checks and RLS run as the querying user.
+  - **Convert to SECURITY INVOKER function**: If previously requiring elevated rights, implement as a function performing minimal privileged operations. Mark as `SECURITY DEFINER` only if needed with tightly-scoped role and revocations.
+  - **Use RLS and proper policies**: Enable RLS on underlying tables and create explicit policies instead of using definer views to circumvent missing RLS.
+  - **Minimize risk if SECURITY DEFINER is required**: Ensure view owner is low-privilege (not superuser), audit access, revoke unneeded privileges, use helper functions with restricted grants, and consider column-level masking.
 
 **Example:**
 

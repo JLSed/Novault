@@ -43,14 +43,14 @@ export default function SetupMasterKeyModal({
       const wasm = await import("@/pkg/rust");
       await wasm.default();
 
-      const salt = userEmail;
-      const encryptedResult = wasm.encrypt_master_key(password, salt);
+      const encryptedResult = wasm.encrypt_master_key(password);
 
       const result = await saveUserSecrets({
         userId,
-        salt,
-        encryptedMasterKey: encryptedResult.encrypted_key_hex,
-        nonce: encryptedResult.nonce_hex,
+        encryptedPrivateKey: encryptedResult.encrypted_private_key_hex,
+        publicKey: encryptedResult.public_key_hex,
+        pkSalt: encryptedResult.salt,
+        pkNonce: encryptedResult.nonce_hex,
       });
 
       if (!result.success) {

@@ -3,16 +3,16 @@
 import { useState } from "react";
 import { getUserSecrets } from "@/app/home/actions";
 
-interface VerifyMasterKeyProps {
+interface VerifyPrivateKeyProps {
   userId: string;
 }
 
-export default function VerifyMasterKey({ userId }: VerifyMasterKeyProps) {
+export default function VerifyPrivateKey({ userId }: VerifyPrivateKeyProps) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{
     success: boolean;
-    masterKey?: string;
+    privateKey?: string;
     error?: string;
   } | null>(null);
 
@@ -23,7 +23,7 @@ export default function VerifyMasterKey({ userId }: VerifyMasterKeyProps) {
     setResult(null);
 
     try {
-      console.log("[VerifyMasterKey] Starting verification for user:", userId);
+      console.log("[VerifyPrivateKey] Starting verification for user:", userId);
       const secrets = await getUserSecrets(userId);
 
       if (!secrets) {
@@ -33,22 +33,22 @@ export default function VerifyMasterKey({ userId }: VerifyMasterKeyProps) {
       const wasm = await import("@/pkg/rust");
       await wasm.default();
 
-      const decryptResult = wasm.decrypt_master_key(
+      const decryptResult = wasm.decrypt_private_key(
         password,
-        secrets.salt,
-        secrets.encrypted_master_key,
-        secrets.mk_nonce,
+        secrets.pk_salt,
+        secrets.encrypted_private_key,
+        secrets.pk_nonce,
       );
 
       if (decryptResult.success) {
-        console.log("[VerifyMasterKey] Verification successful");
+        console.log("[VerifyPrivateKey] Verification successful");
         setResult({
           success: true,
-          masterKey: decryptResult.master_key_hex,
+          privateKey: decryptResult.private_key_hex,
         });
       } else {
         console.error(
-          "[VerifyMasterKey] Verification failed:",
+          "[VerifyPrivateKey] Verification failed:",
           decryptResult.error_message,
         );
         setResult({
@@ -57,7 +57,7 @@ export default function VerifyMasterKey({ userId }: VerifyMasterKeyProps) {
         });
       }
     } catch (err) {
-      console.error("[VerifyMasterKey] Error verifying master key:", err);
+      console.error("[VerifyPrivateKey] Error verifying private key:", err);
       const errorMessage = err instanceof Error ? err.message : String(err);
       setResult({
         success: false,
@@ -75,7 +75,7 @@ export default function VerifyMasterKey({ userId }: VerifyMasterKeyProps) {
 
   return (
     <div className="w-full max-w-md p-4 border border-foreground/20 rounded">
-      <h1 className="text-xl font-bold mb-4">Testing: Verify Master Key</h1>
+      <h1 className="text-xl font-bold mb-4">Testing: Verify Private Key</h1>
 
       <div className="flex flex-col gap-3">
         <input
@@ -119,7 +119,7 @@ export default function VerifyMasterKey({ userId }: VerifyMasterKeyProps) {
               <div className="flex flex-col gap-1">
                 <span>✓ Password verified!</span>
                 <code className="text-xs break-all bg-green-200 p-1 rounded">
-                  {result.masterKey}
+                  {result.privateKey}
                 </code>
               </div>
             ) : (

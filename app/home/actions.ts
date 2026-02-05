@@ -14,18 +14,19 @@ export interface UserProfile {
 
 export interface UserSecret {
   user_id: string;
-  salt: string;
-  encrypted_master_key: string;
-  mk_nonce: string;
+  encrypted_private_key: string;
+  public_key: string;
+  pk_salt: string;
+  pk_nonce: string;
   created_at: string;
-  updated_at: string;
 }
 
 export interface SaveUserSecretsInput {
   userId: string;
-  salt: string;
-  encryptedMasterKey: string;
-  nonce: string;
+  encryptedPrivateKey: string;
+  publicKey: string;
+  pkSalt: string;
+  pkNonce: string;
 }
 
 export interface SaveUserSecretsResult {
@@ -83,9 +84,10 @@ export async function saveUserSecrets(
 
   const { error } = await supabase.schema("api").from("user_secrets").insert({
     user_id: input.userId,
-    salt: input.salt,
-    encrypted_master_key: input.encryptedMasterKey,
-    mk_nonce: input.nonce,
+    encrypted_private_key: input.encryptedPrivateKey,
+    public_key: input.publicKey,
+    pk_salt: input.pkSalt,
+    pk_nonce: input.pkNonce,
   });
 
   if (error) {

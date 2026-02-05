@@ -6,56 +6,29 @@ use aes_gcm::{
 pub use crate::{get_key_encryption_key, bytes_to_hex, hex_to_bytes, log};
 
 #[wasm_bindgen]
-pub struct DecryptedMasterKey {
+pub struct DecryptedPrivateKey {
     success: bool,
-    master_key: Vec<u8>,
+    private_key: Vec<u8>,
     error_message: String,
 }
 
 #[wasm_bindgen]
-impl DecryptedMasterKey {
-    #[wasm_bindgen(getter)]
-    pub fn success(&self) -> bool {
-        self.success
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn master_key(&self) -> Vec<u8> {
-        self.master_key.clone()
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn master_key_hex(&self) -> String {
-        if self.success {
-            bytes_to_hex(&self.master_key)
-        } else {
-            String::new()
-        }
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn error_message(&self) -> String {
-        self.error_message.clone()
-    }
-}
-
-#[wasm_bindgen]
-pub fn decrypt_master_key(
+pub fn decrypt_private_key(
     password: &str,
     salt: &str,
     encrypted_key_hex: &str,
     nonce_hex: &str,
-) -> DecryptedMasterKey {
-    log("Starting master key decryption...");
+) -> DecryptedPrivateKey {
+    log("Starting private key decryption...");
 
     // Parse the nonce from hex
     let nonce_bytes = match hex_to_bytes(nonce_hex) {
         Ok(bytes) => bytes,
         Err(e) => {
             log(&format!("Failed to parse nonce: {}", e));
-            return DecryptedMasterKey {
+            return DecryptedPrivateKey {
                 success: false,
-                master_key: vec![],
+                private_key: vec![],
                 error_message: format!("Invalid nonce format: {}", e),
             };
         }
@@ -63,9 +36,9 @@ pub fn decrypt_master_key(
 
     if nonce_bytes.len() != 12 {
         log(&format!("Invalid nonce length: {}", nonce_bytes.len()));
-        return DecryptedMasterKey {
+        return DecryptedPrivateKey {
             success: false,
-            master_key: vec![],
+            private_key: vec![],
             error_message: format!("Nonce must be 12 bytes, got {}", nonce_bytes.len()),
         };
     }
@@ -75,20 +48,20 @@ pub fn decrypt_master_key(
         Ok(bytes) => bytes,
         Err(e) => {
             log(&format!("Failed to parse encrypted key: {}", e));
-            return DecryptedMasterKey {
+            return DecryptedPrivateKey {
                 success: false,
-                master_key: vec![],
+                private_key: vec![],
                 error_message: format!("Invalid encrypted key format: {}", e),
             };
         }
     };
   
-    // The encrypted_key should be 48 bytes 
+    // The encrypted_key should be 48 bytes (32 bytes key + 16 bytes auth tag)
     if encrypted_bytes.len() != 48 {
         log(&format!("Invalid encrypted key length: {}", encrypted_bytes.len()));
-        return DecryptedMasterKey {
+        return DecryptedPrivateKey {
             success: false,
-            master_key: vec![],
+            private_key: vec![],
             error_message: format!("Encrypted key must be 48 bytes, got {}", encrypted_bytes.len()),
         };
     }
@@ -103,25 +76,53 @@ pub fn decrypt_master_key(
     let cipher = Aes256Gcm::new(key);
     let nonce = Nonce::from_slice(&nonce_bytes);
 
-    // Decrypt the master key
+    // Decrypt the private key
     log("Attempting decryption...");
     match cipher.decrypt(nonce, encrypted_bytes.as_ref()) {
         Ok(decrypted) => {
             log("Decryption successful!");
-            log(&format!("Decrypted master key: {}", bytes_to_hex(&decrypted)));
-            DecryptedMasterKey {
+            // Private key is intentionally not logged for security
+            DecryptedPrivateKey {
                 success: true,
-                master_key: decrypted,
+                private_key: decrypted,
                 error_message: String::new(),
             }
         }
         Err(_) => {
             log("Decryption failed - invalid password or corrupted data");
-            DecryptedMasterKey {
+            DecryptedPrivateKey {
                 success: false,
-                master_key: vec![],
+                private_key: vec![],
                 error_message: "Decryption failed. Please check your password.".to_string(),
             }
         }
+    }
+}
+
+
+#[wasm_bindgen]
+impl DecryptedPrivateKey {
+    #[wasm_bindgen(getter)]
+    pub fn success(&self) -> bool {
+        self.success
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn private_key(&self) -> Vec<u8> {
+        self.private_key.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn private_key_hex(&self) -> String {
+        if self.success {
+            bytes_to_hex(&self.private_key)
+        } else {
+            String::new()
+        }
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn error_message(&self) -> String {
+        self.error_message.clone()
     }
 }
