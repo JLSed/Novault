@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/services/supabase/server";
 import { redirect } from "next/navigation";
 
 export default async function SettingsPage() {

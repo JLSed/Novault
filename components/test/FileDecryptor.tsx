@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { getUserSecrets } from "@/app/home/actions";
+import { HexToUint8Array } from "@/utils/hexUtils";
 
 interface FileDecryptorProps {
   userId: string;
@@ -83,7 +84,20 @@ export default function FileDecryptor({ userId }: FileDecryptorProps) {
         "bytes",
       );
 
-      // Step 4: Decrypt the file using hybrid decryption
+      // Step 4: Convert hex inputs to bytes for WASM
+      console.log("[FileDecryptor] Converting hex inputs to bytes...");
+      const encryptedPrivateKeyBytes = HexToUint8Array(
+        secrets.encrypted_private_key,
+      );
+      const pkNonceBytes = HexToUint8Array(secrets.pk_nonce);
+      const ephemeralPublicKeyBytes = HexToUint8Array(
+        ephemeralPublicKeyHex.trim(),
+      );
+      const encryptedDekBytes = HexToUint8Array(encryptedDekHex.trim());
+      const dekNonceBytes = HexToUint8Array(dekNonceHex.trim());
+      const fileNonceBytes = HexToUint8Array(fileNonceHex.trim());
+
+      // Step 5: Decrypt the file using hybrid decryption
       // Private key decryption happens internally within WASM - sensitive data never leaves the WASM boundary
       console.log(
         "[FileDecryptor] Decrypting file (private key decryption happens internally)...",
@@ -92,12 +106,12 @@ export default function FileDecryptor({ userId }: FileDecryptorProps) {
         encryptedData,
         password,
         secrets.pk_salt,
-        secrets.encrypted_private_key,
-        secrets.pk_nonce,
-        ephemeralPublicKeyHex.trim(),
-        encryptedDekHex.trim(),
-        dekNonceHex.trim(),
-        fileNonceHex.trim(),
+        encryptedPrivateKeyBytes,
+        pkNonceBytes,
+        ephemeralPublicKeyBytes,
+        encryptedDekBytes,
+        dekNonceBytes,
+        fileNonceBytes,
       );
 
       if (!decryptResult.success) {

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { getUserSecrets } from "@/app/home/actions";
+import { HexToUint8Array } from "@/utils/hexUtils";
 
 interface FileEncryptorProps {
   userId: string;
@@ -71,9 +72,10 @@ export default function FileEncryptor({ userId }: FileEncryptorProps) {
       const fileData = new Uint8Array(fileBuffer);
       console.log("[FileEncryptor] File read, size:", fileData.length, "bytes");
 
-      // Step 4: Encrypt the file using the user's public key
+      // Step 4: Convert public key hex to bytes and encrypt the file
       console.log("[FileEncryptor] Encrypting file with public key...");
-      const encryptResult = wasm.encrypt_file(fileData, secrets.public_key);
+      const publicKeyBytes = HexToUint8Array(secrets.public_key);
+      const encryptResult = wasm.encrypt_file(fileData, publicKeyBytes);
 
       if (!encryptResult.success) {
         console.error(

@@ -3,7 +3,7 @@ use aes_gcm::{
     Aes256Gcm, Nonce, aead::{Aead, KeyInit, generic_array::GenericArray}
 };
 
-pub use crate::{get_key_encryption_key, bytes_to_hex, hex_to_bytes, log};
+pub use crate::{get_key_encryption_key, bytes_to_hex, log};
 
 #[wasm_bindgen]
 pub struct DecryptedPrivateKey {
@@ -12,73 +12,57 @@ pub struct DecryptedPrivateKey {
     error_message: String,
 }
 
+/// Decrypts the user's private key using password-derived key
+/// 
+/// # Arguments
+/// * `password` - The user's master password
+/// * `salt` - Salt used for key derivation
+/// * `encrypted_key` - The encrypted private key bytes (48 bytes: 32 key + 16 auth tag)
+/// * `nonce` - The nonce used for encryption (12 bytes)
+/// 
+/// # Returns
+/// DecryptedPrivateKey containing the decrypted private key or error message
 #[wasm_bindgen]
 pub fn decrypt_private_key(
     password: &str,
     salt: &str,
-    encrypted_key_hex: &str,
-    nonce_hex: &str,
+    encrypted_key: &[u8],
+    nonce: &[u8],
 ) -> DecryptedPrivateKey {
     log("Starting private key decryption...");
 
-    // Parse the nonce from hex
-    let nonce_bytes = match hex_to_bytes(nonce_hex) {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            log(&format!("Failed to parse nonce: {}", e));
-            return DecryptedPrivateKey {
-                success: false,
-                private_key: vec![],
-                error_message: format!("Invalid nonce format: {}", e),
-            };
-        }
-    };
-
-    if nonce_bytes.len() != 12 {
-        log(&format!("Invalid nonce length: {}", nonce_bytes.len()));
+    // Validate nonce length
+    if nonce.len() != 12 {
+        log(&format!("Invalid nonce length: {}", nonce.len()));
         return DecryptedPrivateKey {
             success: false,
             private_key: vec![],
-            error_message: format!("Nonce must be 12 bytes, got {}", nonce_bytes.len()),
+            error_message: format!("Nonce must be 12 bytes, got {}", nonce.len()),
         };
     }
 
-    // Parse the encrypted key from hex (this includes the auth tag)
-    let encrypted_bytes = match hex_to_bytes(encrypted_key_hex) {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            log(&format!("Failed to parse encrypted key: {}", e));
-            return DecryptedPrivateKey {
-                success: false,
-                private_key: vec![],
-                error_message: format!("Invalid encrypted key format: {}", e),
-            };
-        }
-    };
-  
     // The encrypted_key should be 48 bytes (32 bytes key + 16 bytes auth tag)
-    if encrypted_bytes.len() != 48 {
-        log(&format!("Invalid encrypted key length: {}", encrypted_bytes.len()));
+    if encrypted_key.len() != 48 {
+        log(&format!("Invalid encrypted key length: {}", encrypted_key.len()));
         return DecryptedPrivateKey {
             success: false,
             private_key: vec![],
-            error_message: format!("Encrypted key must be 48 bytes, got {}", encrypted_bytes.len()),
+            error_message: format!("Encrypted key must be 48 bytes, got {}", encrypted_key.len()),
         };
     }
 
     // Derive the encryption key from password and salt (includes paminta internally)
     log("Deriving encryption key from password...");
     let encryption_key = get_key_encryption_key(password, salt);
-    log(&format!("Derived key: {}", bytes_to_hex(&encryption_key)));
 
     // Create the cipher
     let key = GenericArray::from_slice(&encryption_key);
     let cipher = Aes256Gcm::new(key);
-    let nonce = Nonce::from_slice(&nonce_bytes);
+    let nonce = Nonce::from_slice(nonce);
 
     // Decrypt the private key
     log("Attempting decryption...");
-    match cipher.decrypt(nonce, encrypted_bytes.as_ref()) {
+    match cipher.decrypt(nonce, encrypted_key) {
         Ok(decrypted) => {
             log("Decryption successful!");
             // Private key is intentionally not logged for security

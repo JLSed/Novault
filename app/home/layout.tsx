@@ -1,7 +1,7 @@
 import Sidebar from "@/components/Sidebar";
 import { SidebarProvider } from "@/components/SidebarContext";
 import { HomeNavBar } from "@/components/HomeNavbar";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/services/supabase/server";
 import { redirect } from "next/navigation";
 import { getUserProfile, getUserSecrets } from "./actions";
 

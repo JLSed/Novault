@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/services/supabase/server";
 import { redirect } from "next/navigation";
 import { getUserProfile, getUserSecrets } from "./actions";
 import HomeClient from "./HomeClient";

@@ -4,8 +4,24 @@ use aes_gcm::{
 };
 use x25519_dalek::{PublicKey, StaticSecret};
 
-pub use crate::{get_key_encryption_key, bytes_to_hex, hex_to_bytes, log};
+pub use crate::{bytes_to_hex, log};
 pub use crate::encrypt_file::hash_file;
+
+fn validate_inputs(private_key: &[u8], ephemeral_public_key: &[u8], dek_nonce: &[u8], file_nonce: &[u8]) -> Result<(), String> {
+    check_len(32, private_key, "Private Key")?;
+    check_len(32, ephemeral_public_key, "Ephemeral Public Key")?;
+    check_len(12, dek_nonce, "DEK Nonce")?;
+    check_len(12, file_nonce, "File Nonce")?;
+    Ok(())
+}
+
+fn check_len(max: usize, input: &[u8], name: &str) -> Result<(), String> {
+    if input.len() != max {
+        Err(format!("{} must be {} bytes, got {}", name, max, input.len()))
+    } else {
+        Ok(())
+    }    
+}
 
 /// Result of file decryption operation
 #[wasm_bindgen]
@@ -31,12 +47,12 @@ pub struct DecryptedFileResult {
 /// * `encrypted_data` - The encrypted file bytes to decrypt
 /// * `password` - The user's master password
 /// * `pk_salt` - Salt used for deriving the key encryption key
-/// * `encrypted_private_key_hex` - The encrypted private key in hexadecimal format
-/// * `pk_nonce_hex` - The nonce used for private key encryption
-/// * `ephemeral_public_key_hex` - The ephemeral public key used during encryption
-/// * `encrypted_dek_hex` - The encrypted DEK in hexadecimal format
-/// * `dek_nonce_hex` - The nonce used for DEK encryption
-/// * `file_nonce_hex` - The nonce used for file encryption
+/// * `encrypted_private_key` - The encrypted private key bytes (48 bytes)
+/// * `pk_nonce` - The nonce used for private key encryption (12 bytes)
+/// * `ephemeral_public_key` - The ephemeral public key used during encryption (32 bytes)
+/// * `encrypted_dek` - The encrypted DEK bytes
+/// * `dek_nonce` - The nonce used for DEK encryption (12 bytes)
+/// * `file_nonce` - The nonce used for file encryption (12 bytes)
 /// 
 /// # Returns
 /// DecryptedFileResult containing decrypted data and its hash for verification
@@ -45,12 +61,12 @@ pub fn decrypt_file(
     encrypted_data: &[u8], 
     password: &str,
     pk_salt: &str,
-    encrypted_private_key_hex: &str,
-    pk_nonce_hex: &str,
-    ephemeral_public_key_hex: &str,
-    encrypted_dek_hex: &str,
-    dek_nonce_hex: &str,
-    file_nonce_hex: &str,
+    encrypted_private_key: &[u8],
+    pk_nonce: &[u8],
+    ephemeral_public_key: &[u8],
+    encrypted_dek: &[u8],
+    dek_nonce: &[u8],
+    file_nonce: &[u8],
 ) -> DecryptedFileResult {
     log("[decrypt_file] Starting file decryption...");
     log(&format!("[decrypt_file] Encrypted size: {} bytes", encrypted_data.len()));
@@ -61,8 +77,8 @@ pub fn decrypt_file(
     let key_result = crate::masterkey_decryptor::decrypt_private_key(
         password,
         pk_salt,
-        encrypted_private_key_hex,
-        pk_nonce_hex
+        encrypted_private_key,
+        pk_nonce
     );
 
     if !key_result.success() {
@@ -77,106 +93,20 @@ pub fn decrypt_file(
     
     let private_key_bytes = key_result.private_key();
 
-    if private_key_bytes.len() != 32 {
-        log(&format!("[decrypt_file] Invalid private key length after decryption: {}", private_key_bytes.len()));
+    if let Err(e) = validate_inputs(&private_key_bytes, ephemeral_public_key, dek_nonce, file_nonce) {
+        log(&format!("[decrypt_file] Input validation failed: {}", e));
         return DecryptedFileResult {
             success: false,
             decrypted_data: vec![],
             file_hash_hex: String::new(),
-            error_message: format!("Private key must be 32 bytes, got {}", private_key_bytes.len()),
-        };
-    }
-
-    // Parse the ephemeral public key from hex
-    let ephemeral_public_bytes = match hex_to_bytes(ephemeral_public_key_hex) {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            log(&format!("[decrypt_file] Failed to parse ephemeral public key: {}", e));
-            return DecryptedFileResult {
-                success: false,
-                decrypted_data: vec![],
-                file_hash_hex: String::new(),
-                error_message: format!("Invalid ephemeral public key format: {}", e),
-            };
-        }
-    };
-
-    if ephemeral_public_bytes.len() != 32 {
-        log(&format!("[decrypt_file] Invalid ephemeral public key length: {}", ephemeral_public_bytes.len()));
-        return DecryptedFileResult {
-            success: false,
-            decrypted_data: vec![],
-            file_hash_hex: String::new(),
-            error_message: format!("Ephemeral public key must be 32 bytes, got {}", ephemeral_public_bytes.len()),
-        };
-    }
-
-    // Parse the encrypted DEK from hex
-    let encrypted_dek_bytes = match hex_to_bytes(encrypted_dek_hex) {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            log(&format!("[decrypt_file] Failed to parse encrypted DEK: {}", e));
-            return DecryptedFileResult {
-                success: false,
-                decrypted_data: vec![],
-                file_hash_hex: String::new(),
-                error_message: format!("Invalid encrypted DEK format: {}", e),
-            };
-        }
-    };
-
-    // Parse the DEK nonce from hex
-    let dek_nonce_bytes = match hex_to_bytes(dek_nonce_hex) {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            log(&format!("[decrypt_file] Failed to parse DEK nonce: {}", e));
-            return DecryptedFileResult {
-                success: false,
-                decrypted_data: vec![],
-                file_hash_hex: String::new(),
-                error_message: format!("Invalid DEK nonce format: {}", e),
-            };
-        }
-    };
-
-    if dek_nonce_bytes.len() != 12 {
-        log(&format!("[decrypt_file] Invalid DEK nonce length: {}", dek_nonce_bytes.len()));
-        return DecryptedFileResult {
-            success: false,
-            decrypted_data: vec![],
-            file_hash_hex: String::new(),
-            error_message: format!("DEK nonce must be 12 bytes, got {}", dek_nonce_bytes.len()),
-        };
-    }
-
-    // Parse the file nonce from hex
-    let file_nonce_bytes = match hex_to_bytes(file_nonce_hex) {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            log(&format!("[decrypt_file] Failed to parse file nonce: {}", e));
-            return DecryptedFileResult {
-                success: false,
-                decrypted_data: vec![],
-                file_hash_hex: String::new(),
-                error_message: format!("Invalid file nonce format: {}", e),
-            };
-        }
-    };
-
-    if file_nonce_bytes.len() != 12 {
-        log(&format!("[decrypt_file] Invalid file nonce length: {}", file_nonce_bytes.len()));
-        return DecryptedFileResult {
-            success: false,
-            decrypted_data: vec![],
-            file_hash_hex: String::new(),
-            error_message: format!("File nonce must be 12 bytes, got {}", file_nonce_bytes.len()),
+            error_message: e,
         };
     }
 
     // Step 2: Perform ECDH to derive shared secret
     log("[decrypt_file] Performing ECDH to derive shared secret...");
     let private_key_array: [u8; 32] = private_key_bytes.try_into().unwrap();
-    let ephemeral_public_array: [u8; 32] = ephemeral_public_bytes.try_into().unwrap();
+    let ephemeral_public_array: [u8; 32] = ephemeral_public_key.try_into().unwrap();
     
     let private_key = StaticSecret::from(private_key_array);
     let ephemeral_public = PublicKey::from(ephemeral_public_array);
@@ -188,9 +118,9 @@ pub fn decrypt_file(
     log("[decrypt_file] Decrypting DEK...");
     let shared_key = GenericArray::from_slice(shared_secret.as_bytes());
     let dek_cipher = Aes256Gcm::new(shared_key);
-    let dek_nonce = Nonce::from_slice(&dek_nonce_bytes);
+    let dek_nonce_ga = Nonce::from_slice(dek_nonce);
 
-    let dek = match dek_cipher.decrypt(dek_nonce, encrypted_dek_bytes.as_ref()) {
+    let dek = match dek_cipher.decrypt(dek_nonce_ga, encrypted_dek) {
         Ok(decrypted) => {
             log(&format!("[decrypt_file] DEK decrypted! Size: {} bytes", decrypted.len()));
             decrypted
@@ -220,9 +150,9 @@ pub fn decrypt_file(
     log("[decrypt_file] Decrypting file data...");
     let dek_key = GenericArray::from_slice(&dek);
     let file_cipher = Aes256Gcm::new(dek_key);
-    let file_nonce = Nonce::from_slice(&file_nonce_bytes);
+    let file_nonce_ga = Nonce::from_slice(file_nonce);
 
-    match file_cipher.decrypt(file_nonce, encrypted_data) {
+    match file_cipher.decrypt(file_nonce_ga, encrypted_data) {
         Ok(decrypted) => {
             log(&format!("[decrypt_file] Decryption successful! Decrypted size: {} bytes", decrypted.len()));
             
@@ -248,7 +178,6 @@ pub fn decrypt_file(
         }
     }
 }
-
 
 #[wasm_bindgen]
 impl DecryptedFileResult {

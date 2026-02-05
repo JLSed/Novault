@@ -4,7 +4,7 @@ use aes_gcm::{
 };
 use x25519_dalek::{PublicKey, StaticSecret};
 
-pub use crate::{generate_nonce, bytes_to_hex, hex_to_bytes, hash_file, log};
+pub use crate::{generate_nonce, bytes_to_hex, hash_file, log};
 
 /// Result of file encryption operation
 /// 
@@ -30,7 +30,7 @@ pub struct EncryptedFileResult {
 /// 
 /// # Arguments
 /// * `file_data` - The raw file bytes to encrypt
-/// * `recipient_public_key_hex` - The recipient's X25519 public key in hex format
+/// * `recipient_public_key` - The recipient's X25519 public key (32 bytes)
 /// 
 /// # Returns
 /// EncryptedFileResult containing:
@@ -43,31 +43,14 @@ pub struct EncryptedFileResult {
 #[wasm_bindgen]
 pub fn encrypt_file(
     file_data: &[u8], 
-    recipient_public_key_hex: &str,
+    recipient_public_key: &[u8],
 ) -> EncryptedFileResult {
     log("[encrypt_file] Starting file encryption...");
     log(&format!("[encrypt_file] File size: {} bytes", file_data.len()));
 
-    // Parse the recipient's public key
-    let public_key_bytes = match hex_to_bytes(recipient_public_key_hex) {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            log(&format!("[encrypt_file] Failed to parse public key: {}", e));
-            return EncryptedFileResult {
-                success: false,
-                encrypted_data: vec![],
-                file_nonce_hex: String::new(),
-                encrypted_dek: vec![],
-                dek_nonce_hex: String::new(),
-                ephemeral_public_key: vec![],
-                original_hash_hex: String::new(),
-                error_message: format!("Invalid public key format: {}", e),
-            };
-        }
-    };
-
-    if public_key_bytes.len() != 32 {
-        log(&format!("[encrypt_file] Invalid public key length: {}", public_key_bytes.len()));
+    // Validate recipient's public key length
+    if recipient_public_key.len() != 32 {
+        log(&format!("[encrypt_file] Invalid public key length: {}", recipient_public_key.len()));
         return EncryptedFileResult {
             success: false,
             encrypted_data: vec![],
@@ -76,12 +59,12 @@ pub fn encrypt_file(
             dek_nonce_hex: String::new(),
             ephemeral_public_key: vec![],
             original_hash_hex: String::new(),
-            error_message: format!("Public key must be 32 bytes, got {}", public_key_bytes.len()),
+            error_message: format!("Public key must be 32 bytes, got {}", recipient_public_key.len()),
         };
     }
 
-    let recipient_public_key: [u8; 32] = public_key_bytes.try_into().unwrap();
-    let recipient_public = PublicKey::from(recipient_public_key);
+    let recipient_public_key_array: [u8; 32] = recipient_public_key.try_into().unwrap();
+    let recipient_public = PublicKey::from(recipient_public_key_array);
 
     // Step 1: Generate a random DEK (Data Encryption Key)
     log("[encrypt_file] Generating random DEK...");

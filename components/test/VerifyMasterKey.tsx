@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { getUserSecrets } from "@/app/home/actions";
+import { HexToUint8Array } from "@/utils/hexUtils";
 
 interface VerifyPrivateKeyProps {
   userId: string;
@@ -33,11 +34,17 @@ export default function VerifyPrivateKey({ userId }: VerifyPrivateKeyProps) {
       const wasm = await import("@/pkg/rust");
       await wasm.default();
 
+      // Convert hex values to bytes before passing to WASM
+      const encryptedPrivateKeyBytes = HexToUint8Array(
+        secrets.encrypted_private_key,
+      );
+      const pkNonceBytes = HexToUint8Array(secrets.pk_nonce);
+
       const decryptResult = wasm.decrypt_private_key(
         password,
         secrets.pk_salt,
-        secrets.encrypted_private_key,
-        secrets.pk_nonce,
+        encryptedPrivateKeyBytes,
+        pkNonceBytes,
       );
 
       if (decryptResult.success) {
