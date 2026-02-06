@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { createClient } from "@/services/supabase/client";
+import { uploadFile } from "@/utils/api";
+
 
 interface StorageBucketUploaderProps {
   bucketName?: string;
@@ -9,8 +10,7 @@ interface StorageBucketUploaderProps {
 
 interface UploadResult {
   success: boolean;
-  path?: string;
-  publicUrl?: string;
+  filePath?: string;
   error?: string;
 }
 
@@ -57,11 +57,9 @@ export default function StorageBucketUploader({
       console.log("[StorageBucketUploader] File size:", file.size, "bytes");
       console.log("[StorageBucketUploader] File type:", file.type);
 
-      const supabase = createClient();
 
       // Generate file path - use custom path or default to timestamp + filename
       const timestamp = Date.now();
-      // Ensure path starts with 'files' folder as required by RLS policy: (storage.foldername(name))[1] = 'files'
       const filePath = customPath
         ? `${customPath}/${file.name}`
         : `files/${timestamp}_${file.name}`;
@@ -69,32 +67,18 @@ export default function StorageBucketUploader({
       console.log("[StorageBucketUploader] Upload path:", filePath);
 
       // Upload file to Supabase storage
-      const { data, error } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-
-      if (error) {
-        console.error("[StorageBucketUploader] Upload error:", error);
-        throw error;
-      }
-
-      console.log("[StorageBucketUploader] Upload successful:", data);
-
-      // Get public URL (if bucket is public)
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from(bucketName).getPublicUrl(data.path);
-
-      console.log("[StorageBucketUploader] Public URL:", publicUrl);
-
+      const result = await uploadFile("storage", file, filePath);
+      if (result.success) {
+        console.log("[StorageBucketUploader] Upload successful");
+        console.log("[StorageBucketUploader] Public URL:", result.filePath);
       setResult({
         success: true,
-        path: data.path,
-        publicUrl: publicUrl,
+        filePath: result.filePath,
       });
+      }
+      if (result.error) {
+        throw new Error(result.error);
+      }
     } catch (error) {
       console.error("[StorageBucketUploader] Error:", error);
       setResult({
@@ -231,16 +215,16 @@ export default function StorageBucketUploader({
                 <p className="text-green-700 dark:text-green-400">
                   <span className="font-medium">Path:</span> {result.path}
                 </p>
-                {result.publicUrl && (
+                {result.filePath && (
                   <p className="text-green-700 dark:text-green-400">
                     <span className="font-medium">Public URL:</span>{" "}
                     <a
-                      href={result.publicUrl}
+                      href={result.filePath}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="break-all underline hover:text-green-800 dark:hover:text-green-300"
                     >
-                      {result.publicUrl}
+                      {result.filePath}
                     </a>
                   </p>
                 )}

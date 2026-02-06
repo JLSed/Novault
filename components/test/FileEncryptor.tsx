@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { getUserSecrets } from "@/app/home/actions";
 import { HexToUint8Array } from "@/utils/hexUtils";
+import { insertFileMetadata, uploadFile} from "@/utils/api";
 
 interface FileEncryptorProps {
   userId: string;
@@ -114,6 +115,21 @@ export default function FileEncryptor({ userId }: FileEncryptorProps) {
         originalHashHex: encryptResult.original_hash_hex,
         fileName: file.name,
       });
+
+      const timestamp = Date.now();
+      const uploadResult = await uploadFile("storage", encryptResult.encryptedData, `files/${timestamp}_${file.name}.encrypted`);  
+
+      if (uploadResult.success) {
+print("sucess")
+      }
+
+      const insertMetadataResult = await insertFileMetadata(userId, file.name, uploadResult.filePath, encryptResult.original_hash_hex, encryptResult.file_nonce_hex);
+
+      if (uploadResult.success) {
+print("metadata success")
+      }
+
+
     } catch (err) {
       console.error("[FileEncryptor] Error during encryption:", err);
       const errorMessage = err instanceof Error ? err.message : String(err);

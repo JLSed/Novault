@@ -66,17 +66,16 @@ pub fn encrypt_file(
     let recipient_public_key_array: [u8; 32] = recipient_public_key.try_into().unwrap();
     let recipient_public = PublicKey::from(recipient_public_key_array);
 
-    // Step 1: Generate a random DEK (Data Encryption Key)
+    // Generate a random DEK
     log("[encrypt_file] Generating random DEK...");
     let dek_secret = StaticSecret::random_from_rng(OsRng);
     let dek: [u8; 32] = dek_secret.to_bytes();
     log(&format!("[encrypt_file] DEK generated: {}", bytes_to_hex(&dek)));
 
-    // Step 2: Compute the original file hash
     log("[encrypt_file] Computing original file hash...");
     let original_hash = hash_file(file_data);
 
-    // Step 3: Encrypt the file using the DEK
+    // Encrypt the file using the DEK
     log("[encrypt_file] Encrypting file with DEK...");
     let file_nonce = generate_nonce();
     let file_nonce_hex = bytes_to_hex(file_nonce.as_slice());
@@ -106,7 +105,7 @@ pub fn encrypt_file(
         }
     };
 
-    // Step 4: Generate ephemeral key pair and perform ECDH
+    // Generate ephemeral key pair and perform ECDH
     log("[encrypt_file] Generating ephemeral key pair for ECDH...");
     let ephemeral_secret = StaticSecret::random_from_rng(OsRng);
     let ephemeral_public = PublicKey::from(&ephemeral_secret);
@@ -116,7 +115,7 @@ pub fn encrypt_file(
     let shared_secret = ephemeral_secret.diffie_hellman(&recipient_public);
     log("[encrypt_file] Shared secret derived via ECDH");
 
-    // Step 5: Encrypt the DEK using the shared secret
+    // Encrypt the DEK using the shared secret
     log("[encrypt_file] Encrypting DEK with shared secret...");
     let dek_nonce = generate_nonce();
     let dek_nonce_hex = bytes_to_hex(dek_nonce.as_slice());

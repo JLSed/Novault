@@ -103,7 +103,6 @@ pub fn decrypt_file(
         };
     }
 
-    // Step 2: Perform ECDH to derive shared secret
     log("[decrypt_file] Performing ECDH to derive shared secret...");
     let private_key_array: [u8; 32] = private_key_bytes.try_into().unwrap();
     let ephemeral_public_array: [u8; 32] = ephemeral_public_key.try_into().unwrap();
