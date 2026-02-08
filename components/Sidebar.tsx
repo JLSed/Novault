@@ -80,7 +80,7 @@ const navGroups: NavGroup[] = [
         label: "User Management",
         href: "/home/user",
         icon: <Users size={20} />,
-        children: [{ label: "something", href: "/home/user/trademark" }],
+        children: [{ label: "basta", href: "/home/user/trademark" }],
       },
     ],
   },

@@ -34,8 +34,6 @@ export default async function HomePage() {
         {hasMasterKey && <VerifyMasterKey userId={user.id} />}
         <MasterKeyDeriver />
         <FileEncryptor userId={user.id} />
-        <FileDecryptor userId={user.id} />
-        <StorageBucketUploader />
       </div>
     </HomeClient>
   );

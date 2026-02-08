@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { FileText } from "lucide-react";
 import { FileMetadata } from "@/app/home/storage/actions";
+import FileDecryptionModal from "@/components/FileDecryptionModal";
 
 /** Props for the FileViewer component */
 interface FileViewerProps {
@@ -24,37 +26,12 @@ function formatDate(dateString: string): string {
 }
 
 /**
- * Extracts the folder name from a file path.
- * Returns the parent directory name or "My Files" as default.
- *
- * @param filePath - The storage path of the file
- * @returns The folder name
- */
-function getFolderName(filePath: string): string {
-  const parts = filePath.split("/").filter(Boolean);
-  if (parts.length > 1) {
-    return parts[parts.length - 2];
-  }
-  return "My Files";
-}
-
-/**
- * Extracts the file extension from a filename.
- *
- * @param fileName - The name of the file
- * @returns The lowercase extension without the dot, or empty string
- */
-function getFileExtension(fileName: string): string {
-  const dotIndex = fileName.lastIndexOf(".");
-  if (dotIndex === -1) return "";
-  return fileName.substring(dotIndex + 1).toLowerCase();
-}
-
-/**
  * FileViewer displays a list of user files in a clean table-like layout.
  * Shows file name, folder, size, and upload date.
  */
 export default function FileViewer({ files }: FileViewerProps) {
+  const [selectedFile, setSelectedFile] = useState<FileMetadata | null>(null);
+
   if (files.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-12">
@@ -84,42 +61,49 @@ export default function FileViewer({ files }: FileViewerProps) {
       {/* File list */}
       <div className="flex flex-col gap-2">
         {files.map((file) => {
-          const folder = getFolderName(file.file_path);
           const date = formatDate(file.uploaded_at);
 
           return (
             <div
               key={file.file_id}
-              className="flex items-center rounded-md px-6 bg-primary/10 py-4 hover:bg-primary/60 hover:text-background transition-colors cursor-pointer group"
+              onClick={() => setSelectedFile(file)}
+              className="flex items-center rounded-md px-4 bg-primary/5 py-4 hover:bg-primary/10 text-foreground transition-colors cursor-pointer group"
             >
               {/* File icon */}
               <div
-                className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0`}
+                className={`w-10 h-10 flex items-center justify-center shrink-0`}
               >
                 <FileText size={20} />
               </div>
 
               {/* File name & folder */}
-              <div className="ml-4 flex-1 min-w-0">
+              <div className="ml-2 flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{file.file_name}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{folder}</p>
+                {/* <p className="text-xs mt-0.5">{folder}</p> */}
               </div>
 
-              {/* File size — estimated from hash length as actual size isn't stored */}
+              {/* File size — wala pa */}
               <div className="hidden sm:block w-24 text-right mr-6">
                 <span className="text-sm text-gray-500">—</span>
               </div>
 
               {/* Upload date */}
               <div className="w-32 text-right shrink-0">
-                <span className="text-sm text-gray-500 group-hover:text-background">
-                  {date}
-                </span>
+                <span className="text-sm text-gray-500">{date}</span>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Decryption modal */}
+      {selectedFile && (
+        <FileDecryptionModal
+          file={selectedFile}
+          isOpen={!!selectedFile}
+          onClose={() => setSelectedFile(null)}
+        />
+      )}
     </div>
   );
 }
