@@ -75,11 +75,6 @@ const navGroups: NavGroup[] = [
         label: "Storage",
         href: "/home/storage",
         icon: <HardDrive size={20} />,
-        children: [
-          { label: "Patent", href: "/home/storage/patent" },
-          { label: "Copyright", href: "/home/storage/copyright" },
-          { label: "Trademark", href: "/home/storage/trademark" },
-        ],
       },
       {
         label: "User Management",

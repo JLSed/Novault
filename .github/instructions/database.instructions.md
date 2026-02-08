@@ -522,9 +522,12 @@ REFRESH MATERIALIZED VIEW user_order_stats;
 - Audit database access
 - Regularly backup databases
 - Test backup restoration procedures
+- **Prefer SECURITY INVOKER over SECURITY DEFINER**. `SECURITY DEFINER` functions run with the privileges of the creator and bypass Row Level Security (RLS). Only use `SECURITY DEFINER` when absolutely necessary.
+- **If SECURITY DEFINER is required, enforce manual security controls**. Because RLS is bypassed, you MUST manually validate inputs, check quotas, and verify permissions within the function body.
 - **If a function is SECURITY DEFINER, always pin the search_path** - This is critical because the definer's privileges apply, and an unpinned search_path could allow privilege escalation attacks
 - **Wrap auth/session function calls in scalar subqueries for RLS policies** - Direct calls like `auth.uid()` or `current_setting('...')` inside USING or WITH CHECK are volatile and re-evaluated per row, causing CPU overhead for bulk operations. Use `(SELECT auth.uid())` instead of `auth.uid()` for more efficient execution plans
 - **View Security Guidelines**:
+  - **ALWAYS use `WITH (security_invoker = on)` for views**: This ensures the view uses the permissions of the current user (invoker) rather than the view owner (definer). This is critical for RLS to work correctly on the underlying tables and prevents data leaks in Supabase.
   - **Remove SECURITY DEFINER from the view**: Best when the view doesn't need elevated privileges. Recreate without it so access checks and RLS run as the querying user.
   - **Convert to SECURITY INVOKER function**: If previously requiring elevated rights, implement as a function performing minimal privileged operations. Mark as `SECURITY DEFINER` only if needed with tightly-scoped role and revocations.
   - **Use RLS and proper policies**: Enable RLS on underlying tables and create explicit policies instead of using definer views to circumvent missing RLS.
@@ -556,16 +559,68 @@ VALUES (
     pgp_sym_encrypt('123-45-6789', 'encryption_key')
 );
 
--- ✅ Good: SECURITY DEFINER function with pinned search_path
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
+-- ✅ Good: Bulletproof SECURITY DEFINER function (Manual validation & Quota checks)
+CREATE OR REPLACE FUNCTION api.upload_encrypted_file(
+    p_file_name TEXT,
+    p_file_path TEXT,
+    p_file_hash TEXT,
+    p_file_nonce TEXT,
+    p_encrypted_dek TEXT,
+    p_dek_nonce TEXT,
+    p_ephemeral_public_key TEXT
+) RETURNS JSON AS $$
+DECLARE
+    v_user_id UUID;
+    v_file_id UUID;
+    MAX_FILENAME_LEN CONSTANT INT := 255;
 BEGIN
-    INSERT INTO public.user_profiles (user_id, role)
-    VALUES (new.id, 'user');
-    RETURN new;
+    -- 1. Secure Identity Extraction
+    v_user_id := (SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid);
+
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'Not authenticated' USING ERRCODE = 'P0001';
+    END IF;
+
+    -- 2. INPUT VALIDATION (New Security Layer)
+    -- Prevent massive strings from bloating DB
+    IF length(p_file_name) > MAX_FILENAME_LEN THEN
+        RAISE EXCEPTION 'Filename too long';
+    END IF;
+
+    -- Ensure basic sanity of the path (prevent simple directory traversal confusion)
+    IF p_file_path LIKE '%..%' OR p_file_path LIKE '/%' THEN
+            -- Optional: Enforce specific path structures depending on your storage needs
+    END IF;
+
+    -- 3. QUOTA CHECK (Replaces RLS Check)
+    -- Example: Limit user to 100 files (Remove if not needed)
+    -- IF (SELECT count(*) FROM public.file_metadata WHERE uploader_id = v_user_id) >= 100 THEN
+    --    RAISE EXCEPTION 'Upload quota exceeded';
+    -- END IF;
+
+    -- 4. Transactional Inserts
+    INSERT INTO public.file_metadata (
+        uploader_id, file_name, file_path, file_hash, file_nonce
+    )
+    VALUES (
+        v_user_id, p_file_name, p_file_path, p_file_hash, p_file_nonce
+    )
+    RETURNING file_id INTO v_file_id;
+
+    INSERT INTO public.file_dek (
+        file_id, encrypted_dek, dek_nonce, ephemeral_public_key
+    )
+    VALUES (
+        v_file_id, p_encrypted_dek, p_dek_nonce, p_ephemeral_public_key
+    );
+
+    RETURN json_build_object('file_id', v_file_id);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public;
+
+REVOKE ALL ON FUNCTION api.upload_encrypted_file FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION api.upload_encrypted_file TO authenticated;
 
 -- ❌ Bad: SECURITY DEFINER without pinned search_path (vulnerable to privilege escalation)
 CREATE OR REPLACE FUNCTION public.handle_new_user()

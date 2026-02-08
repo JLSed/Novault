@@ -1,8 +1,16 @@
-export default function StoragePage() {
+import FileViewer from "@/components/FileViewer";
+import { getUserFiles } from "./actions";
+
+export default async function StoragePage() {
+  const { files, error } = await getUserFiles();
+
+  if (error) {
+    console.error("[StoragePage] Failed to load files:", error);
+  }
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-foreground">Storage</h1>
-      {/* Storage content will be added here */}
+    <div className="p-4 space-y-6">
+      <FileViewer files={files} />
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { getUserSecrets } from "@/app/home/actions";
 import { HexToUint8Array } from "@/utils/hexUtils";
-import { insertFileMetadata, uploadFile} from "@/utils/api";
+import { insertFileMetadata, uploadFile } from "@/utils/api";
 
 interface FileEncryptorProps {
   userId: string;
@@ -117,19 +117,30 @@ export default function FileEncryptor({ userId }: FileEncryptorProps) {
       });
 
       const timestamp = Date.now();
-      const uploadResult = await uploadFile("storage", encryptResult.encryptedData, `files/${timestamp}_${file.name}.encrypted`);  
+      const uploadResult = await uploadFile(
+        "storage",
+        encryptResult.encrypted_data,
+        `files/${timestamp}_${file.name}.encrypted`,
+      );
 
       if (uploadResult.success) {
-print("sucess")
+        console.log("upload success");
       }
 
-      const insertMetadataResult = await insertFileMetadata(userId, file.name, uploadResult.filePath, encryptResult.original_hash_hex, encryptResult.file_nonce_hex);
+      const insertMetadataResult = await insertFileMetadata(
+        userId,
+        file.name,
+        uploadResult.filePath,
+        encryptResult.original_hash_hex,
+        encryptResult.file_nonce_hex,
+        encryptResult.encrypted_dek_hex,
+        encryptResult.dek_nonce_hex,
+        encryptResult.ephemeral_public_key_hex,
+      );
 
-      if (uploadResult.success) {
-print("metadata success")
+      if (insertMetadataResult.success) {
+        console.log("metadata success");
       }
-
-
     } catch (err) {
       console.error("[FileEncryptor] Error during encryption:", err);
       const errorMessage = err instanceof Error ? err.message : String(err);

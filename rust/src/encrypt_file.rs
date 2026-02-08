@@ -1,3 +1,10 @@
+/// The encryption process:
+/// 1. Generate a random DEK (Data Encryption Key)
+/// 2. Encrypt the file using the DEK with AES-256-GCM
+/// 3. Generate an ephemeral X25519 key pair
+/// 4. Perform ECDH with recipient's public key to derive a shared secret
+/// 5. Encrypt the DEK using the shared secret with AES-256-GCM
+
 use wasm_bindgen::prelude::*;
 use aes_gcm::{
     Aes256Gcm, Nonce, aead::{Aead, KeyInit, OsRng, generic_array::GenericArray}
@@ -6,14 +13,6 @@ use x25519_dalek::{PublicKey, StaticSecret};
 
 pub use crate::{generate_nonce, bytes_to_hex, hash_file, log};
 
-/// Result of file encryption operation
-/// 
-/// The encryption process:
-/// 1. Generate a random DEK (Data Encryption Key)
-/// 2. Encrypt the file using the DEK with AES-256-GCM
-/// 3. Generate an ephemeral X25519 key pair
-/// 4. Perform ECDH with recipient's public key to derive a shared secret
-/// 5. Encrypt the DEK using the shared secret with AES-256-GCM
 #[wasm_bindgen]
 pub struct EncryptedFileResult {
     success: bool,
